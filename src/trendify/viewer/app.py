@@ -8,10 +8,11 @@ from __future__ import annotations
 import datetime
 import logging
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from importlib.metadata import version
 from pathlib import Path
+from typing import Any, cast
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -77,7 +78,7 @@ def create_app(db_path: Path) -> FastAPI:
     """
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         app.state.store = RecordStore.open(db_path, readonly=True)
         app.state.hydration_runner = HydrationRunner(db_path)
         try:
@@ -92,9 +93,12 @@ def create_app(db_path: Path) -> FastAPI:
     app.state.db_mtime = None
 
     templates = Jinja2Templates(directory=_TEMPLATES_DIR)
-    templates.env.globals["current_year"] = datetime.datetime.now().year
-    templates.env.globals["app_version"] = _get_version()
-    templates.env.globals["db_path"] = str(db_path)
+    # Jinja's `Environment.globals` is inferred from its default namespace (range, dict, ...),
+    # so it isn't typed as the open `dict[str, Any]` it behaves as.
+    env_globals = cast("dict[str, Any]", templates.env.globals)
+    env_globals["current_year"] = datetime.datetime.now().year
+    env_globals["app_version"] = _get_version()
+    env_globals["db_path"] = str(db_path)
     app.state.templates = templates
 
     app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")

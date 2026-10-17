@@ -27,11 +27,11 @@ class TestBinsCoercion:
     def test_list_is_coerced_to_a_hashable_tuple(self):
         # `bins` is annotated `int | tuple[int, ...] | None`, narrower than what the
         # `mode="before"` validator actually accepts at runtime (list/ndarray too, coerced
-        # to a tuple); the type: ignore reflects that real gap, not a mistake here.
-        assert HistogramStyle(bins=[1, 2, 3]).bins == (1, 2, 3)  # pyright: ignore[reportArgumentType]
+        # to a tuple); this test exercises that gap on purpose.
+        assert HistogramStyle(bins=[1, 2, 3]).bins == (1, 2, 3)
 
     def test_ndarray_is_coerced_to_a_hashable_tuple(self):
-        style = HistogramStyle(bins=np.array([1, 2, 3]))  # pyright: ignore[reportArgumentType]
+        style = HistogramStyle(bins=np.array([1, 2, 3]))
         assert style.bins == (1, 2, 3)
 
     def test_int_bins_pass_through_unchanged(self):
@@ -39,7 +39,7 @@ class TestBinsCoercion:
 
     def test_style_is_hashable_with_coerced_bins(self):
         # The whole reason bins gets coerced: HistogramStyle instances go in a `set()`.
-        hash(HistogramStyle(bins=[1, 2, 3]))  # pyright: ignore[reportArgumentType]
+        hash(HistogramStyle(bins=[1, 2, 3]))
 
 
 class TestVisibleEdgeForStepHisttype:

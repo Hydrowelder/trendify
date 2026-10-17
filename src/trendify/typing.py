@@ -22,5 +22,5 @@ if TYPE_CHECKING:
     type MatN = _VecBase
     """An NxN numeric matrix of arbitrary length."""
 else:
-    VecN = Annotated[NDArray[Shape["*"], float | int], ...]  # type: ignore  # noqa: F722
-    MatN = Annotated[NDArray[Shape["*, *"], float | int], ...]  # type: ignore  # noqa: F722
+    VecN = Annotated[NDArray[Shape["*"], float | int], ...]  # noqa: F722
+    MatN = Annotated[NDArray[Shape["*, *"], float | int], ...]  # noqa: F722

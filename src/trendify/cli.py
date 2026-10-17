@@ -381,13 +381,7 @@ def viewer(
 
     from trendify.viewer.app import create_app
 
-    password = None  # not supported yet
-    if password:  # ty: ignore[redundant-condition]
-        connection_info = "[yellow]Auth enabled. Use [u]any[/u] username and your provided password.[/yellow]\n\n"
-    else:
-        connection_info = ""
-
-    connection_info += (
+    connection_info = (
         f"Local: [bold indian_red1 u]http://127.0.0.1:{port}[/bold indian_red1 u]"
     )
     if host == "0.0.0.0":
