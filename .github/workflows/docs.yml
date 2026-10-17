@@ -23,7 +23,7 @@ jobs:
           enable-cache: true
       - name: Install Python 3.14
         run: uv python install 3.14
-      - run: uv run --locked --python 3.14 --group dev --extra all zensical build --clean
+      - run: uv run --locked --python 3.14 --group dev zensical build --clean
       - uses: actions/upload-pages-artifact@v4
         with:
           path: site

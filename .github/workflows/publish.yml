@@ -30,7 +30,7 @@ jobs:
       - name: Run unit tests
         # Explicitly tells uv which python version to use for the test environment;
         # --locked fails the job if uv.lock is out of date with pyproject.toml
-        run: uv run --locked --python ${{ matrix.python-version }} --group dev --extra all pytest
+        run: uv run --locked --python ${{ matrix.python-version }} --group dev pytest
   publish:
     name: "Build and Publish"
     needs: [test]
