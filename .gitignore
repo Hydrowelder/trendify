@@ -38,3 +38,4 @@ discriminator_tests.log
 
 # Benchmark output (sweep results are large and machine specific)
 benchmarks/results/
+scripts/example_data

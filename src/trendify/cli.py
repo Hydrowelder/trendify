@@ -377,9 +377,7 @@ def viewer(
 
     # Deferred import: keeps `trendify.cli` import light for callers of generate/render/run
     # who never touch the dashboard (FastAPI/Jinja2/uvicorn stay unimported until needed).
-    import uvicorn
-
-    from trendify.viewer.app import create_app
+    from trendify.viewer.app import create_app, make_server
 
     connection_info = (
         f"Local: [bold indian_red1 u]http://127.0.0.1:{port}[/bold indian_red1 u]"
@@ -398,7 +396,7 @@ def viewer(
         )
     )
 
-    uvicorn.run(create_app(db_path), host=host, port=port, log_level="critical")
+    make_server(create_app(db_path), host=host, port=port).run()
 
 
 if __name__ == "__main__":

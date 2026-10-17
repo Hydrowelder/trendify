@@ -1,3 +1,5 @@
+import { readStorage, writeStorage } from "./local-storage";
+
 export interface HorizontalResizeOptions {
   storageKey: string;
   elementId: string;
@@ -14,7 +16,7 @@ export function horizontalResize({
   minWidth,
   maxWidth,
 }: HorizontalResizeOptions) {
-  const stored = Number(localStorage.getItem(storageKey));
+  const stored = Number(readStorage(storageKey));
   const initialWidth = Number.isFinite(stored) && stored > 0 ? stored : defaultWidth;
 
   return {
@@ -32,7 +34,7 @@ export function horizontalResize({
       };
       const onUp = () => {
         this.dragging = false;
-        localStorage.setItem(storageKey, String(this.width));
+        writeStorage(storageKey, String(this.width));
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
         // Content that reflows into the newly-sized main area (e.g. the plot viewer) only
@@ -54,7 +56,7 @@ export function horizontalResize({
       el.style.width = restoreWidth;
 
       this.width = Math.min(maxWidth, Math.max(minWidth, natural));
-      localStorage.setItem(storageKey, String(this.width));
+      writeStorage(storageKey, String(this.width));
     },
   };
 }

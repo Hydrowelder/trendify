@@ -203,6 +203,12 @@ export function tableView() {
       });
       this.render();
     },
+    destroy(this: TableViewContext) {
+      // A `render()` still awaiting its response must not rebuild into the `$refs.tableContainer`
+      // this unmount just removed: bumping `requestId` makes its stale-response guard return early.
+      this.requestId++;
+      this.currentAbortController?.abort();
+    },
     async render(this: TableViewContext) {
       const tag = this.selectedTag;
       if (tag === null) return;

@@ -235,16 +235,24 @@ class TestViewerCommand:
         assert result.exit_code != 0
         assert result.exception is not None
 
-    def test_starts_uvicorn_with_the_requested_host_and_port(
+    def test_starts_the_server_with_the_requested_host_and_port(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         db_path = tmp_path / "trendify.db"
         RecordStore.open(db_path).close()
 
-        calls = []
-        monkeypatch.setattr(
-            "uvicorn.run", lambda app, **kwargs: calls.append((app, kwargs))
-        )
+        calls: list[tuple[object, dict[str, object]]] = []
+        started: list[bool] = []
+
+        class FakeServer:
+            def run(self) -> None:
+                started.append(True)
+
+        def fake_make_server(app: object, **kwargs: object) -> FakeServer:
+            calls.append((app, kwargs))
+            return FakeServer()
+
+        monkeypatch.setattr("trendify.viewer.app.make_server", fake_make_server)
 
         result = runner.invoke(
             app, ["viewer", str(db_path), "--host", "0.0.0.0", "--port", "9001"]
@@ -252,6 +260,7 @@ class TestViewerCommand:
 
         assert result.exit_code == 0, result.output
         assert len(calls) == 1
+        assert started == [True]  # the server was actually run
         _, kwargs = calls[0]
         assert kwargs["host"] == "0.0.0.0"
         assert kwargs["port"] == 9001

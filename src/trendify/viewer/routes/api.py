@@ -3,31 +3,34 @@ JSON API for the dashboard frontend. Currently just the tag tree (the actual sid
 server-rendered from the same data, see `routes.pages`; this endpoint exists for any future
 client-side refresh/polling use), a liveness/db-change ping, and the table/plot data endpoints.
 
-Every handler reads from the process-lifetime, read-only `RecordStore` on
-`request.app.state.store` and caches its response in `request.app.state.response_cache`. The
-`.db` file can be regenerated out from under a running `viewer` process (e.g. someone re-runs
-`trendify generate`/`run`); `/ping` detects that via the file's mtime and clears the cache, so
-this is a cache invalidation concern rather than something that makes the cache unsafe to use.
+Every handler does its database and plot-building work on a worker thread (never on the event
+loop, so a slow request can't stall other endpoints when this app is embedded in a larger one),
+each thread with its own read-only `RecordStore`, and caches its response in
+`request.app.state.response_cache`. The `.db` file can be regenerated out from under a running
+`viewer` process (e.g. someone re-runs `trendify generate`/`run`); `/ping` detects that via the
+file's mtime and clears the cache, so this is a cache invalidation concern rather than something
+that makes the cache unsafe to use.
 
-`/table` and `/plot` requests tagged `X-Trendify-Hydrate` (the frontend's background-prefetch
-scheduler, not a real click -- see `_is_hydration_request`) instead run against
-`request.app.state.hydration_runner`'s own dedicated thread/connection, so a slow prefetch can
-never block a real click on this app's single-threaded event loop (see `viewer.app.create_app`'s
-docstring and `viewer.hydration.HydrationRunner`).
+Requests tagged `X-Trendify-Hydrate` (the frontend's background-prefetch scheduler, not a real
+click -- see `_is_hydration_request`) run on `request.app.state.hydration_runner`'s thread
+instead of `request.app.state.runner`'s, so a slow prefetch can never queue ahead of a real click
+(see `viewer.app.create_app`'s docstring and `viewer.hydration.HydrationRunner`).
 """
 
 from __future__ import annotations
 
 import base64
 import logging
+from collections import OrderedDict
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, Literal, cast
 
 import numpy as np
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
+from trendify.base.helpers import Tag
 from trendify.formats.format2d import Format2D
 from trendify.generator.table_builder import TableBuilder
 from trendify.plotting.axline import AxLine
@@ -38,6 +41,7 @@ from trendify.plotting.scatter import Scatter2D
 from trendify.plotting.trace import Trace2D
 from trendify.store.record_store import RecordStore
 from trendify.store.tags import decode_tag
+from trendify.viewer.hydration import RunnerClosed
 from trendify.viewer.plot_config import HoverMode, InterpMode, LineMode
 from trendify.viewer.tag_tree import TagNode, build_tag_tree
 
@@ -76,53 +80,80 @@ class PlotResponse(BaseModel):
     """Plotly figure layout (axes, legend, grid) built from the tag's `Format2D`."""
 
 
-def _get_store(request: Request) -> RecordStore:
-    return request.app.state.store
+_MAX_CACHED_RESPONSES = 512
+"""Most responses kept in the cache. The key includes client-chosen query values, so without a
+cap a public deployment could be made to hold unbounded memory. Large enough that background
+hydration still keeps every tag of a typical database warm."""
+
+_MAX_POINTS_LIMIT = 1_000_000
+"""Largest `max_points` the `/plot` endpoint accepts."""
 
 
 def _is_hydration_request(request: Request) -> bool:
     """
     `X-Trendify-Hydrate` is set only by the frontend's background-prefetch scheduler
-    (`prefetch.ts`), never by a real user click. Hydration-tagged requests are routed to
-    `app.state.hydration_runner`'s dedicated worker thread/connection instead of the main one
-    (see `HydrationRunner`'s docstring for why), so a slow background request can never block a
-    real click on this app's single-threaded event loop.
+    (`prefetch.ts`), never by a real user click. Hydration-tagged requests run on
+    `app.state.hydration_runner`'s own worker thread instead of `app.state.runner`'s, so a slow
+    background request can never queue ahead of a real click.
     """
     return bool(request.headers.get("x-trendify-hydrate"))
+
+
+async def _run[T](request: Request, build: Callable[[RecordStore], T]) -> T:
+    """
+    Runs `build` against a read-only `RecordStore` on a worker thread, so SQLite and plot
+    building never block the event loop (which a host app embedding the viewer shares).
+    """
+    runner = (
+        request.app.state.hydration_runner
+        if _is_hydration_request(request)
+        else request.app.state.runner
+    )
+    try:
+        return await runner.run(build)
+    except RunnerClosed as error:
+        raise HTTPException(
+            status_code=503, detail="The viewer is shutting down."
+        ) from error
 
 
 async def _cached[T](
     request: Request, cache_key: tuple, build: Callable[[], Awaitable[T]]
 ) -> T:
     """
-    Process-lifetime response cache: `.db` files are static for the life of a `viewer` process
-    (no write path exists in this feature), so a handler's expensive work only ever needs to
-    run once per distinct cache key -- whichever request (hydration or a real click) happens to
-    compute it first, the other reuses the result.
+    Response cache, least-recently-used and capped at `_MAX_CACHED_RESPONSES`: `.db` files are
+    static while a `viewer` process runs (no write path exists in this feature), so a handler's
+    expensive work only needs to run once per distinct cache key -- whichever request
+    (hydration or a real click) happens to compute it first, the other reuses the result.
     """
-    cache: dict[tuple, object] = request.app.state.response_cache
-    if cache_key not in cache:
+    cache: OrderedDict[tuple, object] = request.app.state.response_cache
+    if cache_key in cache:
+        cache.move_to_end(cache_key)
+    else:
         cache[cache_key] = await build()
+        while len(cache) > _MAX_CACHED_RESPONSES:
+            cache.popitem(last=False)
     return cast(T, cache[cache_key])
+
+
+def _decode_tag_or_422(tag: str) -> Tag:
+    """Decodes the `tag` query value, answering 422 (not a server error) when it isn't valid."""
+    try:
+        return decode_tag(tag)
+    except ValueError as error:  # json.JSONDecodeError is a ValueError
+        raise HTTPException(
+            status_code=422, detail="`tag` must be a JSON-encoded tag."
+        ) from error
 
 
 @router.get("/tags", response_model=list[TagNode])
 async def get_tags(request: Request) -> list[TagNode]:
-    # async def, not def: see routes.pages.index's comment, this keeps it on the event loop's
-    # thread, matching the RecordStore connection's thread affinity.
-    is_hydration = _is_hydration_request(request)
-    if is_hydration:
+    if _is_hydration_request(request):
         logger.debug("Hydrating tag tree in the background")
 
-    def build(store: RecordStore) -> list[TagNode]:
-        return build_tag_tree(store)
-
-    async def resolve() -> list[TagNode]:
-        if is_hydration:
-            return await request.app.state.hydration_runner.run(build)
-        return build(_get_store(request))
-
-    return await _cached(request, ("tags",), resolve)
+    return await _cached(
+        request, ("tags",), lambda: _run(request, lambda store: build_tag_tree(store))
+    )
 
 
 @router.get("/ping")
@@ -163,7 +194,7 @@ async def get_table(tag: str, view: TableView, request: Request) -> TableRespons
     fails (a repeated `(row, col)` pair) or there are no numeric pivoted columns: both are
     normal, expected shapes for some tags' data, not error conditions.
     """
-    decoded_tag = decode_tag(tag)
+    decoded_tag = _decode_tag_or_422(tag)
     is_hydration = _is_hydration_request(request)
     if is_hydration:
         logger.debug(
@@ -194,12 +225,7 @@ async def get_table(tag: str, view: TableView, request: Request) -> TableRespons
             available=True, columns=stats.columns, rows=stats.to_dicts()
         )
 
-    async def resolve() -> TableResponse:
-        if is_hydration:
-            return await request.app.state.hydration_runner.run(build)
-        return build(_get_store(request))
-
-    return await _cached(request, ("table", view, tag), resolve)
+    return await _cached(request, ("table", view, tag), lambda: _run(request, build))
 
 
 def _plain_list(value: Any) -> list[Any]:
@@ -254,7 +280,7 @@ async def get_plot(
     interp: InterpMode = InterpMode.LINEAR,
     hover: HoverMode = HoverMode.CLOSEST,
     show_spike: bool = False,
-    max_points: int | None = Query(None, gt=0),
+    max_points: int | None = Query(None, gt=0, le=_MAX_POINTS_LIMIT),
 ) -> PlotResponse:
     """
     Plotly figure JSON (`{available, data, layout}`) for the plot viewer, built the same way as
@@ -270,7 +296,7 @@ async def get_plot(
     (`add_hline`/`add_vline`), not `data` traces, so it's naturally unaffected by the
     trace-level overrides below.
     """
-    decoded_tag = decode_tag(tag)
+    decoded_tag = _decode_tag_or_422(tag)
     is_hydration = _is_hydration_request(request)
     if is_hydration:
         logger.debug(f"Hydrating tag {decoded_tag!r} in the background (plot)")
@@ -327,13 +353,8 @@ async def get_plot(
 
         return PlotResponse(available=True, data=traces_json, layout=layout_json)
 
-    async def resolve() -> PlotResponse:
-        if is_hydration:
-            return await request.app.state.hydration_runner.run(build)
-        return build(_get_store(request))
-
     return await _cached(
         request,
         ("plot", tag, line_mode, interp, hover, show_spike, max_points),
-        resolve,
+        lambda: _run(request, build),
     )

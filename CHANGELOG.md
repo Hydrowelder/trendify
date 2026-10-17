@@ -6,6 +6,12 @@
 - Processing and rendering large sets of data is now up to 2.4x faster
     - Saving results no longer slows down as more data is added (plot formatting is now looked up directly instead of searching through every saved record)
     - Plots with lots of lines now draw faster (lines are drawn together in one batch instead of one at a time)
+- The viewer can now be placed inside an existing FastAPI website (mount it at a path like `/viz` and show it in an `<iframe>`)
+    - Slow plots no longer freeze the rest of your site (the viewer's database work now runs on its own background thread)
+    - Optional settings to hide the database path and to let other sites use the viewer (`show_db_path`, `cors_origins`)
+    - Bad requests now get a clear error, and the viewer's memory use is capped
+- Pressing Ctrl+C in the viewer now stops it right away instead of hanging for a minute or more
+- Fixed console errors when switching plots or tables while one was still loading
 
 ## Version 2.0.3 (2026-09-14)
 
