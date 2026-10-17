@@ -1,3 +1,5 @@
+"""FastAPI dashboard for browsing a `trendify.db` in the browser."""
+
 from trendify.viewer import app as viewer_app
 from trendify.viewer import plot_config, routes, tag_tree
 from trendify.viewer.app import (
@@ -14,7 +16,6 @@ from trendify.viewer.plot_config import (
 from trendify.viewer.routes import (
     api,
     pages,
-    router,
 )
 from trendify.viewer.tag_tree import (
     TagNode,
@@ -34,7 +35,6 @@ __all__ = [
     "create_app_from_env",
     "pages",
     "plot_config",
-    "router",
     "routes",
     "tag_tree",
     "viewer_app",

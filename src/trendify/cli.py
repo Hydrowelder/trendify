@@ -14,6 +14,7 @@ import os
 import sys
 from importlib.metadata import version
 from pathlib import Path
+from types import ModuleType
 from typing import cast
 
 import typer
@@ -53,7 +54,7 @@ _SHADES = [
 ]
 
 
-def print_logo():
+def print_logo() -> None:
     body = Text()
     for i, (line, shade) in enumerate(zip(_LOGO_LINES, _SHADES)):
         body.append(line, style=f"bold {shade}")
@@ -78,7 +79,7 @@ app = typer.Typer(
 )
 
 
-def version_callback(value: bool):
+def version_callback(value: bool) -> None:
     if value:
         console.print(
             f"[bold indian_red1]trendify[/bold indian_red1] [bold white]{VERSION}"
@@ -87,7 +88,7 @@ def version_callback(value: bool):
 
 
 @app.callback(
-    epilog="Check out the [link=https://github.com/talbotknighton/trendify/]full documentation[/link] for more info."
+    epilog="Check out the [link=https://github.com/Hydrowelder/trendify/]full documentation[/link] for more info."
 )
 def main(
     ctx: typer.Context,
@@ -98,7 +99,7 @@ def main(
         is_eager=True,
         help="Show version and exit.",
     ),
-):
+) -> None:
     """
     [bold indian_red1]Trendify:[/bold indian_red1] Generate visual records and static assets from raw data.
     """
@@ -226,7 +227,7 @@ def _resolve_input_directories(patterns: list[str], ctx: typer.Context) -> list[
     return dirs
 
 
-def _import_from_path(module_name: str, file_path: Path):
+def _import_from_path(module_name: str, file_path: Path) -> ModuleType:
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     if spec is None or spec.loader is None:
         raise typer.BadParameter(f"Could not import {file_path} as a Python module")
@@ -340,7 +341,7 @@ def example_data(
     logger.info(f"Wrote {n_folders} sample data folders under {workdir / 'models'}")
 
 
-def get_local_ip():
+def get_local_ip() -> str:
     """Returns the actual local IP address of this machine."""
     import socket
 

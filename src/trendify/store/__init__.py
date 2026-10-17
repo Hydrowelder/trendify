@@ -1,3 +1,5 @@
+"""SQLite-backed storage and querying of records."""
+
 from trendify.store import db
 from trendify.store import record_store
 from trendify.store import tags

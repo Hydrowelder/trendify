@@ -166,7 +166,7 @@ def _coerce_numeric(series: pl.Series) -> pl.Series:
     if series.dtype != pl.Object:
         return series.cast(pl.Float64, strict=False)
 
-    def _to_float(v):
+    def _to_float(v) -> float | None:
         if v is None:
             return None
         try:

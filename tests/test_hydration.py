@@ -18,7 +18,7 @@ def _make_db(tmp_path: Path) -> Path:
 
 
 class TestHydrationRunner:
-    def test_run_executes_on_a_different_thread(self, tmp_path: Path):
+    def test_run_executes_on_a_different_thread(self, tmp_path: Path) -> None:
         runner = HydrationRunner(_make_db(tmp_path))
         try:
             worker_thread_id = asyncio.run(
@@ -28,7 +28,9 @@ class TestHydrationRunner:
         finally:
             runner.close()
 
-    def test_reuses_the_same_thread_and_store_across_calls(self, tmp_path: Path):
+    def test_reuses_the_same_thread_and_store_across_calls(
+        self, tmp_path: Path
+    ) -> None:
         runner = HydrationRunner(_make_db(tmp_path))
         try:
 
@@ -42,7 +44,7 @@ class TestHydrationRunner:
         finally:
             runner.close()
 
-    def test_does_not_block_the_calling_event_loop(self, tmp_path: Path):
+    def test_does_not_block_the_calling_event_loop(self, tmp_path: Path) -> None:
         # If `run()` blocked the event loop, `other_task` (a short sleep) couldn't make
         # progress while the (longer) hydration call is in flight -- it would only start
         # after `run()` already returned, and `other_progressed` would still be False here.

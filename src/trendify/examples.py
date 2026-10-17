@@ -20,7 +20,7 @@ __all__ = ["example_record_generator", "make_example_data"]
 N_PLOTTED_WAVES = 3
 
 
-def make_example_data(workdir: Path, n_folders: int = 10, n_cols: int = 3):
+def make_example_data(workdir: Path, n_folders: int = 10, n_cols: int = 3) -> None:
     """
     Makes a highly diverse, varied sample dataset featuring distinct waveform signatures.
 
@@ -420,7 +420,7 @@ def example_record_generator(workdir: Path) -> trendify.RecordList:
     return records
 
 
-def make_sample_data():
+def make_sample_data() -> None:
     """
     Generates sample data to run the trendify code on
     """
@@ -449,7 +449,7 @@ def make_sample_data():
     )
 
 
-def _main():
+def _main() -> None:
     """
     Makes sample data and runs the generate pipeline against it.
     """

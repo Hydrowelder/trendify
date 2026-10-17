@@ -23,9 +23,7 @@ jobs:
           enable-cache: true
       - name: Install Python 3.14
         run: uv python install 3.14
-      - name: Generate API reference pages
-        run: uv run --python 3.14 --group dev python scripts/gen_ref_pages.py
-      - run: uv run --python 3.14 --group dev zensical build --clean
+      - run: uv run --locked --python 3.14 --group dev zensical build --clean
       - uses: actions/upload-pages-artifact@v4
         with:
           path: site

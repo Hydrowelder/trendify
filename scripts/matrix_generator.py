@@ -889,7 +889,7 @@ if __name__ == "__main__":
         except FileNotFoundError:
             pass
 
-        def run():
+        def run() -> None:
             pipeline = TrendifyPipeline(output_dir=output_directory, n_procs=n_proc)
             pipeline.run(
                 record_generator=build_configuration_matrix,

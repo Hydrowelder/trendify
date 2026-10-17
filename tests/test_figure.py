@@ -26,7 +26,7 @@ class TestSingleAxisFigureApplyFormat:
         saf.ax.plot([0, 1], [1, 0], label="a_line")
         return saf
 
-    def test_titles_labels_limits_and_scales(self):
+    def test_titles_labels_limits_and_scales(self) -> None:
         saf = self._saf_with_two_labeled_lines()
         f2d = Format2D(
             tags=["t"],
@@ -53,7 +53,7 @@ class TestSingleAxisFigureApplyFormat:
         assert saf.ax.get_yscale() == "linear"
         assert tuple(saf.fig.get_size_inches()) == (5.0, 3.0)
 
-    def test_legend_dedupes_and_sorts_by_label(self):
+    def test_legend_dedupes_and_sorts_by_label(self) -> None:
         saf = self._saf_with_two_labeled_lines()
         saf.apply_format(Format2D(tags=["t"], legend=Legend(edgecolor="red")))
 
@@ -62,31 +62,31 @@ class TestSingleAxisFigureApplyFormat:
         assert [t.get_text() for t in legend.get_texts()] == ["a_line", "b_line"]
         assert legend.get_frame().get_edgecolor() == (1.0, 0.0, 0.0, 1.0)
 
-    def test_no_legend_object_when_legend_is_none(self):
+    def test_no_legend_object_when_legend_is_none(self) -> None:
         saf = self._saf_with_two_labeled_lines()
         saf.apply_format(Format2D(tags=["t"], legend=None))
         assert saf.ax.get_legend() is None
 
-    def test_no_legend_object_when_axes_has_no_labeled_artists(self):
+    def test_no_legend_object_when_axes_has_no_labeled_artists(self) -> None:
         saf = SingleAxisFigure.new(tag="t")
         saf.apply_format(Format2D(tags=["t"], legend=Legend()))
         assert saf.ax.get_legend() is None
 
 
 class TestSingleAxisFigureApplyGrid:
-    def test_major_grid_shown(self):
+    def test_major_grid_shown(self) -> None:
         saf = SingleAxisFigure.new(tag="t")
         saf.apply_grid(Grid(major=GridAxis(show=True), minor=GridAxis(show=False)))
         assert saf.ax.xaxis.get_gridlines()[0].get_visible() is True
 
-    def test_major_grid_hidden(self):
+    def test_major_grid_hidden(self) -> None:
         saf = SingleAxisFigure.new(tag="t")
         saf.apply_grid(Grid(major=GridAxis(show=False), minor=GridAxis(show=False)))
         assert saf.ax.xaxis.get_gridlines()[0].get_visible() is False
 
 
 class TestSingleAxisFigureSavefig:
-    def test_saves_a_file_with_explicit_dpi(self, tmp_path: Path):
+    def test_saves_a_file_with_explicit_dpi(self, tmp_path: Path) -> None:
         saf = SingleAxisFigure.new(tag="t")
         saf.ax.plot([0, 1], [0, 1])
         path = tmp_path / "out.jpg"
@@ -94,7 +94,7 @@ class TestSingleAxisFigureSavefig:
         assert result is saf
         assert path.exists()
 
-    def test_saves_a_file_without_dpi(self, tmp_path: Path):
+    def test_saves_a_file_without_dpi(self, tmp_path: Path) -> None:
         saf = SingleAxisFigure.new(tag="t")
         saf.ax.plot([0, 1], [0, 1])
         path = tmp_path / "out.svg"
@@ -103,7 +103,7 @@ class TestSingleAxisFigureSavefig:
 
 
 class TestPlotlyFigureApplyFormat:
-    def test_titles_labels_and_log_scale_range(self):
+    def test_titles_labels_and_log_scale_range(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         f2d = Format2D(
             tags=["t"],
@@ -131,7 +131,7 @@ class TestPlotlyFigureApplyFormat:
         assert layout.xaxis.type == "log"
         assert layout.yaxis.type == "linear"
 
-    def test_legend_visibility_title_and_bordercolor(self):
+    def test_legend_visibility_title_and_bordercolor(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         pf.apply_format(
             Format2D(tags=["t"], legend=Legend(title="leg", edgecolor="red"))
@@ -141,12 +141,12 @@ class TestPlotlyFigureApplyFormat:
         assert layout.legend.title.text == "leg"
         assert layout.legend.bordercolor == "red"
 
-    def test_legend_invisible_when_legend_visible_is_false(self):
+    def test_legend_invisible_when_legend_visible_is_false(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         pf.apply_format(Format2D(tags=["t"], legend=Legend(visible=False)))
         assert _layout(pf).showlegend is False
 
-    def test_no_limits_set_leaves_range_unset(self):
+    def test_no_limits_set_leaves_range_unset(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         pf.apply_format(Format2D(tags=["t"]))
         layout = _layout(pf)
@@ -155,7 +155,7 @@ class TestPlotlyFigureApplyFormat:
 
 
 class TestPlotlyFigureApplyGrid:
-    def test_major_grid_shown_without_minor_ticks(self):
+    def test_major_grid_shown_without_minor_ticks(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         pf.apply_grid(
             Grid(
@@ -168,7 +168,7 @@ class TestPlotlyFigureApplyGrid:
         assert layout.xaxis.showgrid is True
         assert layout.xaxis.minor.showgrid is None
 
-    def test_minor_ticks_enabled_sets_minor_grid(self):
+    def test_minor_ticks_enabled_sets_minor_grid(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         pf.apply_grid(
             Grid(
@@ -183,7 +183,7 @@ class TestPlotlyFigureApplyGrid:
 
 
 class TestPlotlyFigureAddRecord:
-    def test_delegates_to_the_record_add_to_plotly(self):
+    def test_delegates_to_the_record_add_to_plotly(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         trace = Trace2D(tags=["t"], x=[0, 1], y=[1, 2], pen=Pen(label="x"))
         result = pf.add_record(trace)
@@ -192,7 +192,7 @@ class TestPlotlyFigureAddRecord:
         # just widen the assertion target directly for the same underlying pyright reason.
         assert len(cast(Any, pf.fig.data)) == 1
 
-    def test_record_metadata_is_attached_to_its_trace(self):
+    def test_record_metadata_is_attached_to_its_trace(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         trace = Trace2D(
             tags=["t"],
@@ -205,7 +205,7 @@ class TestPlotlyFigureAddRecord:
         [added] = cast(Any, pf.fig.data)
         assert added.meta == {"run": "5", "quality": "good"}
 
-    def test_no_metadata_leaves_meta_unset(self):
+    def test_no_metadata_leaves_meta_unset(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         trace = Trace2D(tags=["t"], x=[0, 1], y=[1, 2], pen=Pen(label="x"))
         pf.add_record(trace)

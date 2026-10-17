@@ -1,5 +1,6 @@
 """Tests for rendering assets (figures)"""
 
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -22,7 +23,7 @@ def db_path(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def store(db_path: Path):
+def store(db_path: Path) -> Iterator[RecordStore]:
     with RecordStore.open(db_path) as s:
         yield s
 
@@ -30,7 +31,7 @@ def store(db_path: Path):
 class TestRenderAssets:
     def test_xy_plot_and_histogram_share_one_figure_for_shared_tag(
         self, store: RecordStore, db_path: Path, tmp_path: Path
-    ):
+    ) -> None:
         # A tag used for both XY and histogram records is treated like any other tag: one
         # shared figure, saved once.
         records = [
@@ -48,7 +49,7 @@ class TestRenderAssets:
 
     def test_renders_table_xy_and_histogram_for_distinct_tags(
         self, store: RecordStore, db_path: Path, tmp_path: Path
-    ):
+    ) -> None:
         records = [
             TableEntry(tags=["tbl"], row="r1", col="c1", value=1.0),
             Point2D(tags=["scatter"], x=1.0, y=2.0),
@@ -65,7 +66,7 @@ class TestRenderAssets:
 
     def test_tuple_tag_nests_output_path(
         self, store: RecordStore, db_path: Path, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(
             tmp_path / "run1", [Point2D(tags=[("group", "scatter")], x=1.0, y=2.0)]
         )
@@ -77,7 +78,7 @@ class TestRenderAssets:
 
     def test_tag_with_no_format2d_at_all_still_renders(
         self, store: RecordStore, db_path: Path, tmp_path: Path
-    ):
+    ) -> None:
         # A tag with plotted records but no Format2D record at all (the common case)
         # must still render fine, with matplotlib's own autoscale in effect.
         store.write_run(
@@ -92,7 +93,7 @@ class TestRenderAssets:
 class TestOnProgress:
     def test_sequential_reports_one_event_per_tag(
         self, store: RecordStore, db_path: Path, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(
             tmp_path / "run1",
             [
@@ -111,7 +112,7 @@ class TestOnProgress:
 
     def test_parallel_reports_one_event_per_tag(
         self, store: RecordStore, db_path: Path, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(
             tmp_path / "run1",
             [
@@ -131,7 +132,7 @@ class TestOnProgress:
 
     def test_callback_error_propagates(
         self, store: RecordStore, db_path: Path, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(tmp_path / "run1", [Point2D(tags=["a"], x=1.0, y=2.0)])
 
         def _boom(event: ProgressEvent) -> None:
@@ -144,7 +145,7 @@ class TestOnProgress:
 class TestFormat2DResolution:
     def test_upsert_by_tag_keeps_only_one_format2d_per_tag(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(tmp_path / "run1", [Format2D(tags=["tag"], title_fig="first")])
         store.write_run(tmp_path / "run2", [Format2D(tags=["tag"], title_fig="second")])
 
@@ -155,7 +156,7 @@ class TestFormat2DResolution:
 
     def test_tag_with_no_format2d_autofits_to_combined_record_range(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(
             tmp_path / "run1",
             [
@@ -176,7 +177,7 @@ class TestFormat2DResolution:
 
     def test_explicit_lim_x_overrides_while_lim_y_still_autofits(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(
             tmp_path / "run1",
             [

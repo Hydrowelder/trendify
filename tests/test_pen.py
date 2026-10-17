@@ -13,7 +13,7 @@ from trendify.plotting.trace import Trace2D
 from trendify.styling.marker import Marker
 
 
-def _trace_mode(pf: PlotlyFigure):
+def _trace_mode(pf: PlotlyFigure) -> str | None:
     return cast("tuple[go.Scatter, ...]", pf.fig.data)[0].mode
 
 
@@ -31,56 +31,56 @@ def _parse_rgba(s: str) -> tuple[float, float, float, float]:
 
 
 class TestRgba:
-    def test_string_color(self):
+    def test_string_color(self) -> None:
         assert _parse_rgba(Pen(color="red", alpha=1.0).rgba) == (255.0, 0.0, 0.0, 1.0)
 
-    def test_rgb_tuple(self):
+    def test_rgb_tuple(self) -> None:
         rgba = Pen(color=(1.0, 0.0, 0.0), alpha=0.5).rgba
         assert _parse_rgba(rgba) == (255.0, 0.0, 0.0, 0.5)
 
-    def test_rgba_tuple_alpha_overrides_pen_alpha(self):
+    def test_rgba_tuple_alpha_overrides_pen_alpha(self) -> None:
         # A 4-element color tuple carries its own alpha, ignoring `Pen.alpha`.
         rgba = Pen(color=(1.0, 0.0, 0.0, 0.25), alpha=1.0).rgba
         assert _parse_rgba(rgba) == (255.0, 0.0, 0.0, 0.25)
 
-    def test_rgb_drops_alpha_from_rgba(self):
+    def test_rgb_drops_alpha_from_rgba(self) -> None:
         # `rgb` is a naive string-split of `rgba` dropping the last comma segment, so it
         # keeps the "rgba(" prefix and the double spaces from the original formatting.
         assert Pen(color="red", alpha=0.5).rgb == "rgba(255,  0,  0)"
 
 
 class TestGetContrastColor:
-    def test_white_text_on_dark_color(self):
+    def test_white_text_on_dark_color(self) -> None:
         assert Pen(color="black").get_contrast_color() == "white"
 
-    def test_black_text_on_light_color(self):
+    def test_black_text_on_light_color(self) -> None:
         assert Pen(color="white").get_contrast_color() == "black"
 
-    def test_works_with_rgb_tuple(self):
+    def test_works_with_rgb_tuple(self) -> None:
         assert Pen(color=(0.0, 0.0, 0.0)).get_contrast_color() == "white"
 
-    def test_works_with_rgba_tuple(self):
+    def test_works_with_rgba_tuple(self) -> None:
         assert Pen(color=(0.0, 0.0, 0.0, 1.0)).get_contrast_color() == "white"
 
 
 class TestHasLine:
     @pytest.mark.parametrize("linestyle", ["-", "--", ":", "-.", (0, (3, 1, 1, 1))])
-    def test_true_for_visible_linestyles(self, linestyle):
+    def test_true_for_visible_linestyles(self, linestyle) -> None:
         assert Pen(linestyle=linestyle).has_line
 
-    def test_false_for_none(self):
+    def test_false_for_none(self) -> None:
         assert not Pen(linestyle=None).has_line
 
 
 class TestTraceMarkersOnly:
-    def _trace(self, **pen_kwargs):
+    def _trace(self, **pen_kwargs) -> Trace2D:
         x = np.linspace(0, 1, 10)
         y = np.sin(x)
         return Trace2D(
             tags=["t"], x=x, y=y, pen=Pen(**pen_kwargs), marker=Marker(symbol="o")
         )
 
-    def test_matplotlib_draws_no_line_when_linestyle_none(self):
+    def test_matplotlib_draws_no_line_when_linestyle_none(self) -> None:
         trace = self._trace(linestyle=None)
         saf = SingleAxisFigure.new(tag="t")
         trace.plot_to_ax(saf.ax)
@@ -88,19 +88,19 @@ class TestTraceMarkersOnly:
         assert line.get_linestyle() == "None"
         assert line.get_marker() == "o"
 
-    def test_plotly_mode_is_markers_only_when_linestyle_none(self):
+    def test_plotly_mode_is_markers_only_when_linestyle_none(self) -> None:
         trace = self._trace(linestyle=None)
         pf = PlotlyFigure.new(tag="t")
         trace.add_to_plotly(pf)
         assert _trace_mode(pf) == "markers"
 
-    def test_plotly_mode_is_lines_and_markers_by_default(self):
+    def test_plotly_mode_is_lines_and_markers_by_default(self) -> None:
         trace = self._trace()
         pf = PlotlyFigure.new(tag="t")
         trace.add_to_plotly(pf)
         assert _trace_mode(pf) == "lines+markers"
 
-    def test_plotly_mode_is_lines_only_without_marker(self):
+    def test_plotly_mode_is_lines_only_without_marker(self) -> None:
         x = np.linspace(0, 1, 10)
         y = np.sin(x)
         trace = Trace2D(tags=["t"], x=x, y=y, pen=Pen())

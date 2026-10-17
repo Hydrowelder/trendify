@@ -1,6 +1,7 @@
 """Tests for record store"""
 
 import logging
+from collections.abc import Iterator
 from pathlib import Path
 
 import polars as pl
@@ -19,12 +20,12 @@ from trendify.store.tags import decode_tag, encode_tag
 
 
 @pytest.fixture
-def store(tmp_path: Path):
+def store(tmp_path: Path) -> Iterator[RecordStore]:
     with RecordStore.open(tmp_path / "trendify.db") as s:
         yield s
 
 
-def _sample_records():
+def _sample_records() -> list[Record]:
     return [
         Point2D(tags=["a", ("a", "b")], x=1, y=2),
         Trace2D(tags=[("a", "b")], x=[0, 1, 2], y=[0, 1, 4], pen=Pen(label="hi")),
@@ -37,23 +38,23 @@ def _sample_records():
 
 
 class TestTagEncoding:
-    def test_scalar_round_trip(self):
+    def test_scalar_round_trip(self) -> None:
         assert decode_tag(encode_tag("foo")) == "foo"
         assert decode_tag(encode_tag(3)) == 3
 
-    def test_tuple_round_trip(self):
+    def test_tuple_round_trip(self) -> None:
         assert decode_tag(encode_tag(("a", "b"))) == ("a", "b")
 
-    def test_scalar_and_tuple_dont_collide(self):
+    def test_scalar_and_tuple_dont_collide(self) -> None:
         assert encode_tag("a") != encode_tag(("a",))
 
 
 class TestWriteRun:
-    def test_write_run_returns_count(self, store: RecordStore, tmp_path: Path):
+    def test_write_run_returns_count(self, store: RecordStore, tmp_path: Path) -> None:
         n = store.write_run(tmp_path / "run1", _sample_records())
         assert n == len(_sample_records())
 
-    def test_write_run_is_idempotent(self, store: RecordStore, tmp_path: Path):
+    def test_write_run_is_idempotent(self, store: RecordStore, tmp_path: Path) -> None:
         run_dir = tmp_path / "run1"
         store.write_run(run_dir, _sample_records())
         store.write_run(run_dir, _sample_records())
@@ -66,7 +67,7 @@ class TestWriteRun:
 
     def test_rerun_with_fewer_records_drops_stale_rows(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         run_dir = tmp_path / "run1"
         store.write_run(run_dir, _sample_records())
         store.write_run(run_dir, _sample_records()[:2])
@@ -74,7 +75,7 @@ class TestWriteRun:
         (count,) = store._conn.execute("SELECT COUNT(*) FROM records").fetchone()
         assert count == 2
 
-    def test_two_runs_coexist(self, store: RecordStore, tmp_path: Path):
+    def test_two_runs_coexist(self, store: RecordStore, tmp_path: Path) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         store.write_run(tmp_path / "run2", _sample_records())
 
@@ -85,17 +86,21 @@ class TestWriteRun:
 class TestGetTags:
     def test_get_tags_includes_scalar_and_tuple(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         tags = store.get_tags()
         assert tags == {"a", ("a", "b"), "tbl", "h"}
 
-    def test_get_tags_filtered_by_type(self, store: RecordStore, tmp_path: Path):
+    def test_get_tags_filtered_by_type(
+        self, store: RecordStore, tmp_path: Path
+    ) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         assert store.get_tags(object_type=TableEntry) == {"tbl"}
         assert store.get_tags(object_type=XYData) == {"a", ("a", "b")}
 
-    def test_tag_tree_sorted_shallow_first(self, store: RecordStore, tmp_path: Path):
+    def test_tag_tree_sorted_shallow_first(
+        self, store: RecordStore, tmp_path: Path
+    ) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         tree = store.tag_tree()
         depths = [len(t) if isinstance(t, tuple) else 1 for t in tree]
@@ -103,7 +108,9 @@ class TestGetTags:
 
 
 class TestGetTagByteSizes:
-    def test_sums_payload_length_per_tag(self, store: RecordStore, tmp_path: Path):
+    def test_sums_payload_length_per_tag(
+        self, store: RecordStore, tmp_path: Path
+    ) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         sizes = store.get_tag_byte_sizes()
         assert set(sizes) == {"a", ("a", "b"), "tbl", "h"}
@@ -111,7 +118,7 @@ class TestGetTagByteSizes:
 
     def test_multi_tagged_record_counts_full_payload_toward_each_tag(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         # A record with N tags backs one payload row referenced by N record_tags rows (see
         # write_run), so its full payload size should count toward every one of its tags,
         # not get divided N ways.
@@ -125,25 +132,29 @@ class TestGetTagByteSizes:
 
 
 class TestGetRecords:
-    def test_filters_by_tag(self, store: RecordStore, tmp_path: Path):
+    def test_filters_by_tag(self, store: RecordStore, tmp_path: Path) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         records = store.get_records_of_type(Record, tag="h")
         assert [p.record_type for p in records] == ["HistogramEntry"]
 
-    def test_filters_by_type_hierarchy(self, store: RecordStore, tmp_path: Path):
+    def test_filters_by_type_hierarchy(
+        self, store: RecordStore, tmp_path: Path
+    ) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         # tag "a" has a Point2D and an AxLine; only Point2D is XYData
         xy = store.get_records_of_type(XYData, tag="a")
         assert [p.record_type for p in xy] == ["Point2D"]
 
-    def test_no_filters_returns_everything(self, store: RecordStore, tmp_path: Path):
+    def test_no_filters_returns_everything(
+        self, store: RecordStore, tmp_path: Path
+    ) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         records = store.get_records_of_type(Record)
         assert len(records) == len(_sample_records())
 
     def test_multi_tag_record_is_not_duplicated_in_storage(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         # Point2D above carries two tags ("a" and ("a","b")), which is precisely the
         # v1 disk-duplication complaint: assert there's exactly one `records` row for
         # it, with two matching `record_tags` index rows, not two payload copies.
@@ -160,7 +171,9 @@ class TestGetRecords:
         ).fetchone()
         assert tag_row_count == 2
 
-    def test_round_trip_preserves_fields(self, store: RecordStore, tmp_path: Path):
+    def test_round_trip_preserves_fields(
+        self, store: RecordStore, tmp_path: Path
+    ) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         [trace] = store.get_records_of_type(Trace2D, tag=("a", "b"))
         assert list(trace.x) == [0, 1, 2]
@@ -171,7 +184,7 @@ class TestGetRecords:
 class TestHasRecords:
     def test_matches_get_records_of_type_truthiness(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         assert store.has_records(tag="a", object_type=XYData) is True
         assert store.has_records(tag="h", object_type=XYData) is False
@@ -179,7 +192,7 @@ class TestHasRecords:
 
     def test_only_deserializes_the_first_matching_record(
         self, store: RecordStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ):
+    ) -> None:
         # has_records's whole point over get_records_of_type(...) truthiness is stopping at
         # the first match instead of deserializing every one -- assert it only ever touches one,
         # even though "many" has 50 matching records.
@@ -190,7 +203,7 @@ class TestHasRecords:
         original_deserialize = Record.deserialize
         calls: list[str] = []
 
-        def counting_deserialize(record_type: str, payload: str):
+        def counting_deserialize(record_type: str, payload: str) -> Record:
             calls.append(record_type)
             return original_deserialize(record_type, payload)
 
@@ -202,7 +215,7 @@ class TestHasRecords:
 class TestHasTableEntries:
     def test_matches_get_table_entries_truthiness(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         assert store.has_table_entries("tbl") is True
         assert store.has_table_entries("nope") is False
@@ -211,7 +224,7 @@ class TestHasTableEntries:
 class TestFormat2DUpsert:
     def test_writing_format2d_for_same_tag_across_runs_keeps_one_row(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(tmp_path / "run1", [Format2D(tags=["tag"], title_fig="first")])
         store.write_run(tmp_path / "run2", [Format2D(tags=["tag"], title_fig="second")])
 
@@ -225,7 +238,7 @@ class TestFormat2DUpsert:
 
     def test_writing_format2d_twice_in_same_run_keeps_one_row(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(
             tmp_path / "run1",
             [
@@ -240,7 +253,7 @@ class TestFormat2DUpsert:
 
     def test_warns_when_a_run_replaces_a_format2d_with_different_settings(
         self, store: RecordStore, tmp_path: Path, caplog: pytest.LogCaptureFixture
-    ):
+    ) -> None:
         store.write_run(tmp_path / "run1", [Format2D(tags=["tag"], title_fig="first")])
         with caplog.at_level(logging.WARNING, logger="trendify.store.record_store"):
             store.write_run(
@@ -253,7 +266,7 @@ class TestFormat2DUpsert:
 
     def test_identical_format2d_from_every_run_does_not_warn(
         self, store: RecordStore, tmp_path: Path, caplog: pytest.LogCaptureFixture
-    ):
+    ) -> None:
         with caplog.at_level(logging.WARNING, logger="trendify.store.record_store"):
             for i in range(3):
                 store.write_run(
@@ -264,7 +277,7 @@ class TestFormat2DUpsert:
 
     def test_warns_only_once_per_tag_however_many_runs_disagree(
         self, store: RecordStore, tmp_path: Path, caplog: pytest.LogCaptureFixture
-    ):
+    ) -> None:
         with caplog.at_level(logging.WARNING, logger="trendify.store.record_store"):
             for i in range(4):
                 store.write_run(
@@ -275,7 +288,7 @@ class TestFormat2DUpsert:
 
     def test_format2d_for_different_tags_coexist(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(
             tmp_path / "run1", [Format2D(tags=["tag_a"]), Format2D(tags=["tag_b"])]
         )
@@ -288,7 +301,7 @@ class TestFormat2DUpsert:
 class TestGetTableEntries:
     def test_returns_polars_dataframe_with_expected_shape(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         df = store.get_table_entries("tbl")
         assert isinstance(df, pl.DataFrame)
@@ -297,7 +310,7 @@ class TestGetTableEntries:
 
     def test_preserves_heterogeneous_value_types(
         self, store: RecordStore, tmp_path: Path
-    ):
+    ) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         df = store.get_table_entries("tbl")
         values = {(row["row"], row["col"]): row["value"] for row in df.to_dicts()}
@@ -305,7 +318,9 @@ class TestGetTableEntries:
         assert values[("r1", "c2")] == "hello"
         assert values[("r2", "c1")] is True
 
-    def test_empty_tag_returns_empty_frame(self, store: RecordStore, tmp_path: Path):
+    def test_empty_tag_returns_empty_frame(
+        self, store: RecordStore, tmp_path: Path
+    ) -> None:
         store.write_run(tmp_path / "run1", _sample_records())
         df = store.get_table_entries("does-not-exist")
         assert df.height == 0

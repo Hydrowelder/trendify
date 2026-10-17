@@ -14,4 +14,3 @@ trendify run \
     -n 4
 
 python "$SCRIPT_DIR/hooks.py"
-python "$SCRIPT_DIR/../scripts/gen_ref_pages.py"

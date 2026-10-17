@@ -49,7 +49,7 @@ def _leaf_type_names(object_type: type[Record]) -> list[str]:
     ]
 
 
-def _tag_sort_key(tag: Tag):
+def _tag_sort_key(tag: Tag) -> tuple[int, tuple[tuple[bool, str | int], ...]]:
     # `Tag` elements may be `str` or `int`, which aren't comparable to each other; sorting
     # each element on `(is_int, value)` keeps same-type elements ordered by value while
     # elements of different types compare on the `is_int` flag instead of colliding.

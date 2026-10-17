@@ -1,3 +1,5 @@
+"""Core building blocks: the `Record` base class, `Pen` styling, and shared type helpers."""
+
 from trendify.base import helpers
 from trendify.base import pen
 from trendify.base import record

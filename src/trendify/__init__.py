@@ -1,5 +1,10 @@
 """
-Provides top-level imports
+Tools for generating, storing, and interacting with tagged records (points, traces, tables,
+histograms) produced by batch-processing many run directories.
+
+Write a `RecordGenerator` that returns records for one run directory, run it over many runs
+with [`TrendifyPipeline`][trendify.pipeline.TrendifyPipeline] or the `trendify` CLI, then browse
+the results in the viewer or render them as plots and tables.
 """
 
 from trendify import (
@@ -131,7 +136,6 @@ from trendify.viewer import (
     create_app_from_env,
     pages,
     plot_config,
-    router,
     routes,
     tag_tree,
     viewer_app,
@@ -226,7 +230,6 @@ __all__ = [
     "record_store",
     "render",
     "render_assets",
-    "router",
     "routes",
     "scatter",
     "set_log_level",

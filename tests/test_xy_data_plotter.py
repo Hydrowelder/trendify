@@ -1,16 +1,20 @@
 """Tests for XYDataPlotter's batched drawing of traces and axlines."""
 
+from collections.abc import Iterator
 from typing import ClassVar
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
+from matplotlib.artist import Artist
 from matplotlib.collections import LineCollection
+from matplotlib.lines import Line2D
 
 from trendify.base.pen import Pen
 from trendify.formats.format2d import Format2D
 from trendify.generator.xy_data_plotter import XYDataPlotter
 from trendify.plotting.axline import AxLine, LineOrientation
+from trendify.plotting.figure import SingleAxisFigure
 from trendify.plotting.trace import Trace2D
 from trendify.styling.legend import Legend, LegendLocation
 from trendify.styling.marker import Marker
@@ -19,7 +23,7 @@ TAG = "tag"
 
 
 @pytest.fixture(autouse=True)
-def _close_figures():
+def _close_figures() -> Iterator[None]:
     yield
     plt.close("all")
 
@@ -28,13 +32,13 @@ def _trace(i: int, **pen_kwargs) -> Trace2D:
     return Trace2D(tags=[TAG], x=[0, 1, 2], y=[i, i + 1, i + 2], pen=Pen(**pen_kwargs))
 
 
-def _plot(traces=(), axlines=()):
+def _plot(traces=(), axlines=()) -> SingleAxisFigure:
     return XYDataPlotter.handle_points_and_traces(
         tag=TAG, points=[], traces=list(traces), axlines=list(axlines), scatters=[]
     )
 
 
-def _old_plot(traces=(), axlines=()):
+def _old_plot(traces=(), axlines=()) -> SingleAxisFigure:
     """The behavior before batching: one artist per record."""
     saf = _plot()
     for trace in traces:
@@ -44,26 +48,29 @@ def _old_plot(traces=(), axlines=()):
     return saf
 
 
-def _visible_artists(ax):
+def _visible_artists(ax) -> list[Artist]:
     return [a for a in ax.get_children() if a.get_visible()]
 
 
 class TestBatchedTraces:
-    def test_many_traces_become_one_collection(self):
+    def test_many_traces_become_one_collection(self) -> None:
         saf = _plot(_trace(i) for i in range(50))
 
         collections = [c for c in saf.ax.collections if isinstance(c, LineCollection)]
         assert len(collections) == 1
         assert len(collections[0].get_segments()) == 50
 
-    def test_each_zorder_gets_its_own_collection_with_that_zorder(self):
+    def test_each_zorder_gets_its_own_collection_with_that_zorder(self) -> None:
         saf = _plot([_trace(0, zorder=1), _trace(1, zorder=5), _trace(2, zorder=1)])
 
-        collections = sorted(saf.ax.collections, key=lambda c: c.get_zorder())
+        collections = sorted(
+            (c for c in saf.ax.collections if isinstance(c, LineCollection)),
+            key=lambda c: c.get_zorder(),
+        )
         assert [c.get_zorder() for c in collections] == [1, 5]
         assert [len(c.get_segments()) for c in collections] == [2, 1]
 
-    def test_each_line_keeps_its_own_style(self):
+    def test_each_line_keeps_its_own_style(self) -> None:
         saf = _plot(
             [
                 _trace(0, color="red", size=3, alpha=0.5, linestyle=":"),
@@ -72,11 +79,14 @@ class TestBatchedTraces:
         )
 
         [collection] = saf.ax.collections
-        assert collection.get_linewidths().tolist() == [3, 1]
-        assert collection.get_colors()[0].tolist() == [1.0, 0.0, 0.0, 0.5]
-        assert collection.get_colors()[1].tolist() == [0.0, 0.0, 1.0, 1.0]
+        assert isinstance(collection, LineCollection)
+        assert np.asarray(collection.get_linewidth()).tolist() == [3, 1]
+        assert np.asarray(collection.get_colors()).tolist() == [
+            [1.0, 0.0, 0.0, 0.5],
+            [0.0, 0.0, 1.0, 1.0],
+        ]
 
-    def test_traces_with_markers_are_drawn_individually(self):
+    def test_traces_with_markers_are_drawn_individually(self) -> None:
         marked = Trace2D(
             tags=[TAG],
             x=[0, 1],
@@ -91,13 +101,13 @@ class TestBatchedTraces:
             "marked"
         ]
 
-    def test_trace_without_a_line_is_drawn_individually(self):
+    def test_trace_without_a_line_is_drawn_individually(self) -> None:
         saf = _plot([_trace(0, linestyle=None, label="dots")])
 
         assert not saf.ax.collections
         assert [line.get_label() for line in saf.ax.lines] == ["dots"]
 
-    def test_no_traces_adds_nothing(self):
+    def test_no_traces_adds_nothing(self) -> None:
         saf = _plot()
 
         assert not saf.ax.collections
@@ -125,14 +135,14 @@ class TestMatchesUnbatchedBehavior:
         ),
     ]
 
-    def test_axis_limits(self):
+    def test_axis_limits(self) -> None:
         new = _plot(self.TRACES, self.AXLINES)
         old = _old_plot(self.TRACES, self.AXLINES)
 
         assert new.ax.get_xlim() == pytest.approx(old.ax.get_xlim())
         assert new.ax.get_ylim() == pytest.approx(old.ax.get_ylim())
 
-    def test_limits_on_log_axes(self):
+    def test_limits_on_log_axes(self) -> None:
         traces = [Trace2D(tags=[TAG], x=[0, 1, 10, 100], y=[1, 10, 100, 1000])]
         new, old = _plot(traces), _old_plot(traces)
         for saf in (new, old):
@@ -143,19 +153,23 @@ class TestMatchesUnbatchedBehavior:
         assert new.ax.get_xlim() == pytest.approx(old.ax.get_xlim())
         assert new.ax.get_ylim() == pytest.approx(old.ax.get_ylim())
 
-    def test_legend_has_one_entry_per_label(self):
+    def test_legend_has_one_entry_per_label(self) -> None:
         new = _plot(self.TRACES, self.AXLINES)
         old = _old_plot(self.TRACES, self.AXLINES)
 
-        def entries(saf):
+        def entries(saf: SingleAxisFigure) -> dict[str, Line2D]:
             handles, labels = saf.ax.get_legend_handles_labels()
-            return dict(zip(labels, handles, strict=True))
+            return {
+                label: handle
+                for label, handle in zip(labels, handles, strict=True)
+                if isinstance(handle, Line2D)
+            }
 
         assert sorted(entries(new)) == sorted(entries(old)) == ["a", "b", "h", "v"]
         # the last pen with a shared label wins, as before
         assert entries(new)["a"].get_color() == entries(old)["a"].get_color() == "green"
 
-    def test_axlines_span_the_axes_and_autoscale_only_across(self):
+    def test_axlines_span_the_axes_and_autoscale_only_across(self) -> None:
         saf = _plot(axlines=self.AXLINES)
 
         saf.ax.figure.canvas.draw()
@@ -170,7 +184,7 @@ class TestMatchesUnbatchedBehavior:
             == _old_plot(axlines=[self.AXLINES[0]]).ax.get_xlim()
         )
 
-    def test_best_legend_location_still_avoids_the_data(self):
+    def test_best_legend_location_still_avoids_the_data(self) -> None:
         # `loc="best"` searches Line2D geometry only. The invisible stand-in line is what lets
         # it still see batched traces, so the legend must land where it did before batching.
         rising = [
@@ -188,11 +202,13 @@ class TestMatchesUnbatchedBehavior:
         for saf in (_plot(rising), _old_plot(rising)):
             saf.apply_format(format2d)
             saf.fig.canvas.draw()
-            extents.append(saf.ax.get_legend().get_window_extent().extents)
+            legend = saf.ax.get_legend()
+            assert legend is not None
+            extents.append(legend.get_window_extent().extents)
 
         assert np.allclose(extents[0], extents[1], atol=1.0)
 
-    def test_stand_in_line_is_never_drawn(self):
+    def test_stand_in_line_is_never_drawn(self) -> None:
         saf = _plot(self.TRACES, self.AXLINES)
 
         stand_ins = [a for a in saf.ax.lines if a.get_label() == "_nolegend_"]

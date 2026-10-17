@@ -46,7 +46,7 @@ class Scatter2D(XYData):
     marker: Marker = Marker()
     """Style and label information shared by every point in this scatter."""
 
-    def plot_to_ax(self, ax: Axes):
+    def plot_to_ax(self, ax: Axes) -> None:
         """
         Scatters xy data to a matplotlib axes object.
 

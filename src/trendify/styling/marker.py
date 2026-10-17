@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from matplotlib.colors import to_rgba
 from pydantic import ConfigDict
@@ -60,7 +61,7 @@ class Marker(HashableBase):
 
     model_config = ConfigDict(extra="forbid")
 
-    def as_scatter_plot_kwargs(self):
+    def as_scatter_plot_kwargs(self) -> dict[str, Any]:
         """
         Returns:
             (dict): dictionary of `kwargs` for [matplotlib scatter][matplotlib.axes.Axes.scatter]
@@ -148,7 +149,7 @@ class Marker(HashableBase):
             a = rgba_vals[3]
 
         # Calculate relative luminance of the pen's color
-        def luminance(channel):
+        def luminance(channel: float) -> float:
             channel /= 255.0
             return (
                 channel / 12.92

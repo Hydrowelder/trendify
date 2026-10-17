@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 2.0.4 (2026-10-17)
+
+- Added support for Python 3.15
+- Processing and rendering large sets of data is now up to 2.4x faster
+    - Saving results no longer slows down as more data is added (plot formatting is now looked up directly instead of searching through every saved record)
+    - Plots with lots of lines now draw faster (lines are drawn together in one batch instead of one at a time)
+
 ## Version 2.0.3 (2026-09-14)
 
 - Added a changelog

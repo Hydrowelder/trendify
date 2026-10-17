@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 from pydantic import (
     BaseModel,
@@ -79,7 +79,7 @@ class Record(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
-    def append_to_list(self, to_add_to: list):
+    def append_to_list(self, to_add_to: list) -> Self:
         """
         Appends self to list.
 
@@ -128,7 +128,7 @@ class Record(BaseModel):
             raise
         return duck_type.model_validate_json(payload)
 
-    def set_metadata(self, new: dict[str, str]):
+    def set_metadata(self, new: dict[str, str]) -> Self:
         self.metadata = new
         return self
 

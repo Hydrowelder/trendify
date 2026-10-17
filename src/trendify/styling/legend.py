@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Any
 
 from trendify.base.helpers import HashableBase
 
@@ -88,7 +89,7 @@ class Legend(HashableBase):
     """Offset position of the legend in figure or axes coordinates. If `None`, the legend
     is placed inside the axes using `loc`."""
 
-    def to_kwargs(self):
+    def to_kwargs(self) -> dict[str, Any]:
         return {
             "title": self.title,
             "framealpha": self.framealpha,
