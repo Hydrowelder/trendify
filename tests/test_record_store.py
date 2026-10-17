@@ -1,5 +1,6 @@
 """Tests for record store"""
 
+import logging
 from pathlib import Path
 
 import polars as pl
@@ -236,6 +237,41 @@ class TestFormat2DUpsert:
             "SELECT COUNT(*) FROM records WHERE record_type = 'Format2D'"
         ).fetchone()
         assert count == 1
+
+    def test_warns_when_a_run_replaces_a_format2d_with_different_settings(
+        self, store: RecordStore, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ):
+        store.write_run(tmp_path / "run1", [Format2D(tags=["tag"], title_fig="first")])
+        with caplog.at_level(logging.WARNING, logger="trendify.store.record_store"):
+            store.write_run(
+                tmp_path / "run2", [Format2D(tags=["tag"], title_fig="second")]
+            )
+
+        [warning] = [r for r in caplog.records if r.levelno == logging.WARNING]
+        assert "'tag'" in warning.getMessage()
+        assert "run2" in warning.getMessage()
+
+    def test_identical_format2d_from_every_run_does_not_warn(
+        self, store: RecordStore, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ):
+        with caplog.at_level(logging.WARNING, logger="trendify.store.record_store"):
+            for i in range(3):
+                store.write_run(
+                    tmp_path / f"run{i}", [Format2D(tags=["tag"], title_fig="same")]
+                )
+
+        assert not [r for r in caplog.records if r.levelno == logging.WARNING]
+
+    def test_warns_only_once_per_tag_however_many_runs_disagree(
+        self, store: RecordStore, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ):
+        with caplog.at_level(logging.WARNING, logger="trendify.store.record_store"):
+            for i in range(4):
+                store.write_run(
+                    tmp_path / f"run{i}", [Format2D(tags=["tag"], title_fig=str(i))]
+                )
+
+        assert len([r for r in caplog.records if r.levelno == logging.WARNING]) == 1
 
     def test_format2d_for_different_tags_coexist(
         self, store: RecordStore, tmp_path: Path

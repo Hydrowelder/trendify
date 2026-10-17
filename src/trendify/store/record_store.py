@@ -18,7 +18,7 @@ import datetime
 import logging
 import sqlite3
 from collections.abc import Iterable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
 
@@ -69,6 +69,8 @@ class RecordStore:
     """
 
     _conn: sqlite3.Connection
+    _format2d_warned: set[str] = field(default_factory=set, init=False, repr=False)
+    """Tag keys already warned about by `_warn_if_format2d_differs`, so each warns once."""
 
     @classmethod
     def open(cls, db_path: Path, *, readonly: bool = False) -> RecordStore:
@@ -153,22 +155,22 @@ class RecordStore:
                     # record's dedup delete must see an earlier same-tag Format2D record
                     # *from this same call* as already inserted, which only holds if that
                     # earlier row's insert has actually happened by the time this check runs.
+                    payload = record.model_dump_json()
                     for tk in tag_keys:
+                        self._warn_if_format2d_differs(tk, payload, run_path_str)
+                        # The inner `record_type` filter lets SQLite seek straight to this tag's
+                        # Format2D row through (tag_key, record_type). Without it the subquery
+                        # returns every record under the tag, so cost grows with the database.
                         conn.execute(
                             "DELETE FROM records WHERE record_type = 'Format2D' AND id IN "
-                            "(SELECT record_id FROM record_tags WHERE tag_key = ?)",
+                            "(SELECT record_id FROM record_tags "
+                            "WHERE tag_key = ? AND record_type = 'Format2D')",
                             (tk,),
                         )
                     conn.execute(
                         "INSERT INTO records(id, run_id, record_type, payload, created_at) "
                         "VALUES (?, ?, ?, ?, ?)",
-                        (
-                            record_id,
-                            run_id,
-                            record.record_type,
-                            record.model_dump_json(),
-                            now,
-                        ),
+                        (record_id, run_id, record.record_type, payload, now),
                     )
                     conn.executemany(
                         "INSERT INTO record_tags(record_id, tag_key, record_type) "
@@ -237,6 +239,30 @@ class RecordStore:
             f"Wrote {len(records)} record(s) for run {run_path_str} (run_id={run_id})"
         )
         return len(records)
+
+    def _warn_if_format2d_differs(
+        self, tag_key: str, payload: str, run_path: str
+    ) -> None:
+        """
+        Warns (once per tag) when the `Format2D` about to replace this tag's stored one has
+        different settings. Every run normally re-emits an identical `Format2D` for its tags,
+        which is expected and silent. A difference means runs disagree about how one tag should
+        be formatted, and only the last one written is kept.
+        """
+        if tag_key in self._format2d_warned:
+            return
+        stored = self._conn.execute(
+            "SELECT r.payload FROM record_tags t JOIN records r ON r.id = t.record_id "
+            "WHERE t.tag_key = ? AND t.record_type = 'Format2D'",
+            (tag_key,),
+        ).fetchall()
+        if any(row["payload"] != payload for row in stored):
+            self._format2d_warned.add(tag_key)
+            logger.warning(
+                f"Format2D for tag {decode_tag(tag_key)!r} differs between runs. Only one "
+                f"Format2D is kept per tag, so the one from run '{run_path}' replaces the "
+                f"earlier one. If runs should share formatting, check the record generator."
+            )
 
     def get_tags(self, object_type: type[Record] | None = None) -> set[Tag]:
         """
