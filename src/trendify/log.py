@@ -44,18 +44,18 @@ theme = Theme(
 
 
 class TerminalFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord):
+    def filter(self, record: logging.LogRecord) -> bool:
         # Block if 'file_only' is True
         return not getattr(record, "file_only", False)
 
 
 class FileFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord):
+    def filter(self, record: logging.LogRecord) -> bool:
         # Block if 'terminal_only' is True
         return not getattr(record, "terminal_only", False)
 
 
-def get_logger(name: str):
+def get_logger(name: str) -> logging.Logger:
     logger = logging.getLogger(name)
 
     if not logger.hasHandlers():

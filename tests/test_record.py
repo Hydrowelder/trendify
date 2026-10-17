@@ -7,28 +7,28 @@ from trendify.plotting.point import Point2D
 
 
 class TestDeserialize:
-    def test_round_trips_a_registered_type(self):
+    def test_round_trips_a_registered_type(self) -> None:
         original = Point2D(tags=["t"], x=1.0, y=2.0)
         restored = Record.deserialize("Point2D", original.model_dump_json())
         assert restored == original
 
-    def test_unregistered_type_raises_key_error(self):
+    def test_unregistered_type_raises_key_error(self) -> None:
         with pytest.raises(KeyError):
             Record.deserialize("NotARealRecordType", "{}")
 
 
 class TestRegistry:
-    def test_includes_known_subclasses(self):
+    def test_includes_known_subclasses(self) -> None:
         assert "Point2D" in Record.registry()
 
-    def test_returns_a_copy_not_the_live_registry(self):
+    def test_returns_a_copy_not_the_live_registry(self) -> None:
         registry = Record.registry()
         registry["Bogus"] = Point2D
         assert "Bogus" not in Record.registry()
 
 
 class TestSetMetadata:
-    def test_replaces_metadata_and_returns_self(self):
+    def test_replaces_metadata_and_returns_self(self) -> None:
         point = Point2D(tags=["t"], x=1.0, y=2.0)
         result = point.set_metadata({"key": "value"})
         assert result is point
@@ -36,7 +36,7 @@ class TestSetMetadata:
 
 
 class TestAppendToList:
-    def test_appends_self_and_returns_self(self):
+    def test_appends_self_and_returns_self(self) -> None:
         point = Point2D(tags=["t"], x=1.0, y=2.0)
         records = []
         result = point.append_to_list(records)

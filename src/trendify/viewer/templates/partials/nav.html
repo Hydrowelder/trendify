@@ -13,21 +13,23 @@
                       clip-rule="evenodd" />
             </svg>
         </button>
-        <a href="https://talbotknighton.github.io/trendify/"
+        <a href="https://Hydrowelder.github.io/trendify/"
            target="_blank"
            rel="noopener noreferrer"
            class="flex items-center gap-2">
-            <img src="/static/assets/main-logo.svg"
+            <img src="{{ root_path }}/static/assets/main-logo.svg"
                  alt="trendify"
                  class="h-8 w-8">
             <span class="text-3xl font-extrabold tracking-wide text-rose-500">TRENDIFY</span>
         </a>
+        {% if db_path %}
         <div class="card flex h-9 items-center rounded-lg p-1 shadow-sm">
             <button type="button"
                     @click='copyDbPath({{ db_path | tojson }})'
                     class="max-w-xs cursor-pointer truncate rounded-md px-2 py-1 text-base text-slate-500 transition-colors duration-150 hover:text-rose-500 dark:text-slate-400"
                     title="{{ db_path }} (click to copy)">{{ db_path }}</button>
         </div>
+        {% endif %}
     </div>
 
     <span x-show="selectedTag"

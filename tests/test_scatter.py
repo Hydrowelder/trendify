@@ -14,14 +14,14 @@ def _scatter(**marker_kwargs) -> Scatter2D:
 
 
 class TestPlotToAx:
-    def test_draws_one_scatter_collection(self):
+    def test_draws_one_scatter_collection(self) -> None:
         saf = SingleAxisFigure.new(tag="t")
         _scatter().plot_to_ax(saf.ax)
         assert len(saf.ax.collections) == 1
 
 
 class TestAddToPlotly:
-    def test_adds_a_markers_only_trace_with_all_points(self):
+    def test_adds_a_markers_only_trace_with_all_points(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         _scatter(label="pts").add_to_plotly(pf)
 
@@ -31,12 +31,12 @@ class TestAddToPlotly:
         assert list(trace.y) == [4.0, 5.0, 6.0]
         assert trace.name == "pts"
 
-    def test_registers_legend_group_from_marker_style(self):
+    def test_registers_legend_group_from_marker_style(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         _scatter(label="pts", color="k", symbol="o").add_to_plotly(pf)
         assert "pts_k_o" in pf.legend_groups
 
-    def test_second_scatter_with_same_style_does_not_repeat_the_legend(self):
+    def test_second_scatter_with_same_style_does_not_repeat_the_legend(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         _scatter(label="pts", color="k", symbol="o").add_to_plotly(pf)
         _scatter(label="pts", color="k", symbol="o").add_to_plotly(pf)

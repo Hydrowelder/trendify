@@ -36,7 +36,7 @@ def _make_run_dirs(tmp_path: Path, n: int) -> Path:
 
 
 class TestVersionOption:
-    def test_prints_version_and_exits_cleanly(self):
+    def test_prints_version_and_exits_cleanly(self) -> None:
         result = runner.invoke(app, ["--version"])
         assert result.exit_code == 0
         assert "trendify" in result.output
@@ -45,7 +45,7 @@ class TestVersionOption:
 class TestImportFromPath:
     def test_raises_bad_parameter_when_no_spec_can_be_created(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ):
+    ) -> None:
         # `spec_from_file_location` returning `None` is the documented (if rare) way this
         # can fail in practice; simulate it directly rather than hunting for a real file
         # that triggers it.
@@ -57,7 +57,7 @@ class TestImportFromPath:
 
 
 class TestGenerateCommand:
-    def test_writes_records_to_store(self, tmp_path: Path):
+    def test_writes_records_to_store(self, tmp_path: Path) -> None:
         glob_pattern = _make_run_dirs(tmp_path, 3)
         gen_module = _write_generator_module(tmp_path / "gen.py")
         out_dir = tmp_path / "out"
@@ -81,7 +81,7 @@ class TestGenerateCommand:
 
     def test_accepts_shell_pre_expanded_glob_as_bare_trailing_paths(
         self, tmp_path: Path
-    ):
+    ) -> None:
         # Regression test: Git Bash/MSYS2 glob-expands wildcard arguments to native
         # (non-MSYS) executables at process-spawn time, even when quoted in bash, turning
         # an unquoted-looking `-i "data/*"` into `-i data/0 data/1 data/2`. Only the first
@@ -109,7 +109,7 @@ class TestGenerateCommand:
         with RecordStore.open(out_dir / "trendify.db", readonly=True) as store:
             assert len(store.get_records_of_type(Point2D)) == 3
 
-    def test_bad_record_generator_spec_errors(self, tmp_path: Path):
+    def test_bad_record_generator_spec_errors(self, tmp_path: Path) -> None:
         glob_pattern = _make_run_dirs(tmp_path, 1)
         out_dir = tmp_path / "out"
 
@@ -130,7 +130,7 @@ class TestGenerateCommand:
 
     def test_resolves_generator_from_an_importable_module(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ):
+    ) -> None:
         # Unlike `_write_generator_module` (a file path spec), this exercises the other
         # branch of `_resolve_record_generator`: a dotted module name resolved via
         # `importlib.import_module`, e.g. `mypkg.gen:generate`.
@@ -171,15 +171,31 @@ class TestGenerateCommand:
 
 
 class TestExampleDataCommand:
-    def test_writes_sample_run_folders(self, tmp_path: Path):
+    def test_writes_sample_run_folders(self, tmp_path: Path) -> None:
         result = runner.invoke(app, ["example-data", "-w", str(tmp_path), "-n", "3"])
 
         assert result.exit_code == 0, result.output
         assert len(list((tmp_path / "models").glob("*/results.csv"))) == 3
 
+    def test_n_cols_sets_the_number_of_data_columns(self, tmp_path: Path) -> None:
+        result = runner.invoke(
+            app, ["example-data", "-w", str(tmp_path), "-n", "1", "--n-cols", "8"]
+        )
+
+        assert result.exit_code == 0, result.output
+        header = (tmp_path / "models" / "0" / "results.csv").read_text().splitlines()[0]
+        assert len(header.split(",")) == 1 + 8  # time + data columns
+
+    def test_n_cols_below_three_is_rejected(self, tmp_path: Path) -> None:
+        result = runner.invoke(
+            app, ["example-data", "-w", str(tmp_path), "-n", "1", "--n-cols", "2"]
+        )
+
+        assert result.exit_code != 0
+
 
 class TestRenderCommand:
-    def test_renders_after_generate(self, tmp_path: Path):
+    def test_renders_after_generate(self, tmp_path: Path) -> None:
         glob_pattern = _make_run_dirs(tmp_path, 2)
         gen_module = _write_generator_module(tmp_path / "gen.py")
         out_dir = tmp_path / "out"
@@ -203,14 +219,14 @@ class TestRenderCommand:
 
 
 class TestViewerCommand:
-    def test_missing_db_file_is_a_bad_parameter(self, tmp_path: Path):
+    def test_missing_db_file_is_a_bad_parameter(self, tmp_path: Path) -> None:
         result = runner.invoke(app, ["viewer", str(tmp_path / "nope.db")])
         assert result.exit_code != 0
         assert "No such database file" in result.output
 
     def test_corrupt_db_file_fails_fast_before_starting_the_server(
         self, tmp_path: Path
-    ):
+    ) -> None:
         bad_db = tmp_path / "bad.db"
         bad_db.write_text("not a sqlite file")
 
@@ -219,16 +235,24 @@ class TestViewerCommand:
         assert result.exit_code != 0
         assert result.exception is not None
 
-    def test_starts_uvicorn_with_the_requested_host_and_port(
+    def test_starts_the_server_with_the_requested_host_and_port(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ):
+    ) -> None:
         db_path = tmp_path / "trendify.db"
         RecordStore.open(db_path).close()
 
-        calls = []
-        monkeypatch.setattr(
-            "uvicorn.run", lambda app, **kwargs: calls.append((app, kwargs))
-        )
+        calls: list[tuple[object, dict[str, object]]] = []
+        started: list[bool] = []
+
+        class FakeServer:
+            def run(self) -> None:
+                started.append(True)
+
+        def fake_make_server(app: object, **kwargs: object) -> FakeServer:
+            calls.append((app, kwargs))
+            return FakeServer()
+
+        monkeypatch.setattr("trendify.viewer.app.make_server", fake_make_server)
 
         result = runner.invoke(
             app, ["viewer", str(db_path), "--host", "0.0.0.0", "--port", "9001"]
@@ -236,13 +260,14 @@ class TestViewerCommand:
 
         assert result.exit_code == 0, result.output
         assert len(calls) == 1
+        assert started == [True]  # the server was actually run
         _, kwargs = calls[0]
         assert kwargs["host"] == "0.0.0.0"
         assert kwargs["port"] == 9001
 
 
 class TestRunCommand:
-    def test_generates_and_renders_in_one_step(self, tmp_path: Path):
+    def test_generates_and_renders_in_one_step(self, tmp_path: Path) -> None:
         glob_pattern = _make_run_dirs(tmp_path, 2)
         gen_module = _write_generator_module(tmp_path / "gen.py")
         out_dir = tmp_path / "out"

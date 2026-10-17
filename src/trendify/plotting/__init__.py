@@ -1,3 +1,5 @@
+"""Plottable record types (points, traces, scatters, axis lines, histogram entries) and figure wrappers."""
+
 from trendify.plotting import axline
 from trendify.plotting import figure
 from trendify.plotting import histogram

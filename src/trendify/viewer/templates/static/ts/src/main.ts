@@ -13,6 +13,7 @@ import { schedulePrefetch } from "./lib/prefetch";
 import { loadSelectionFromUrl, saveSelectionToUrl } from "./lib/url-state";
 import { installPlotlyToastBridge } from "./lib/plotly-toast-bridge";
 import type { ToastKind } from "./lib/toast";
+import { basePath } from "./lib/api";
 import type { Tag } from "./lib/api";
 
 function formatTag(tag: Tag): string {
@@ -66,7 +67,7 @@ document.addEventListener("alpine:init", () => {
       }
       schedulePrefetch(this.selectedTag);
       startConnectionMonitor({
-        pingUrl: "/api/ping",
+        pingUrl: `${basePath()}/api/ping`,
         intervalMs: 5000,
         timeoutMs: 3000,
         onConnectionChange: (connected: boolean) => {

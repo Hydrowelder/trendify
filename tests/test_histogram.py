@@ -24,47 +24,47 @@ def _parse_rgba(s: str) -> tuple[float, float, float, float]:
 
 
 class TestBinsCoercion:
-    def test_list_is_coerced_to_a_hashable_tuple(self):
+    def test_list_is_coerced_to_a_hashable_tuple(self) -> None:
         # `bins` is annotated `int | tuple[int, ...] | None`, narrower than what the
         # `mode="before"` validator actually accepts at runtime (list/ndarray too, coerced
-        # to a tuple); the type: ignore reflects that real gap, not a mistake here.
-        assert HistogramStyle(bins=[1, 2, 3]).bins == (1, 2, 3)  # pyright: ignore[reportArgumentType]
+        # to a tuple); this test exercises that gap on purpose.
+        assert HistogramStyle(bins=[1, 2, 3]).bins == (1, 2, 3)
 
-    def test_ndarray_is_coerced_to_a_hashable_tuple(self):
-        style = HistogramStyle(bins=np.array([1, 2, 3]))  # pyright: ignore[reportArgumentType]
+    def test_ndarray_is_coerced_to_a_hashable_tuple(self) -> None:
+        style = HistogramStyle(bins=np.array([1, 2, 3]))
         assert style.bins == (1, 2, 3)
 
-    def test_int_bins_pass_through_unchanged(self):
+    def test_int_bins_pass_through_unchanged(self) -> None:
         assert HistogramStyle(bins=10).bins == 10
 
-    def test_style_is_hashable_with_coerced_bins(self):
+    def test_style_is_hashable_with_coerced_bins(self) -> None:
         # The whole reason bins gets coerced: HistogramStyle instances go in a `set()`.
-        hash(HistogramStyle(bins=[1, 2, 3]))  # pyright: ignore[reportArgumentType]
+        hash(HistogramStyle(bins=[1, 2, 3]))
 
 
 class TestVisibleEdgeForStepHisttype:
-    def test_step_with_zero_alpha_edge_is_coerced_to_opaque(self, caplog):
+    def test_step_with_zero_alpha_edge_is_coerced_to_opaque(self, caplog) -> None:
         style = HistogramStyle(histtype="step", alpha_edge=0)
         assert style.alpha_edge == 1
         assert "coercing edge transparency" in caplog.text
 
-    def test_step_with_nonzero_alpha_edge_is_left_alone(self):
+    def test_step_with_nonzero_alpha_edge_is_left_alone(self) -> None:
         assert HistogramStyle(histtype="step", alpha_edge=0.5).alpha_edge == 0.5
 
-    def test_non_step_histtype_is_unaffected(self):
+    def test_non_step_histtype_is_unaffected(self) -> None:
         assert HistogramStyle(histtype="bar", alpha_edge=0).alpha_edge == 0
 
 
 class TestColorMath:
-    def test_rgba_face_uses_alpha_face(self):
+    def test_rgba_face_uses_alpha_face(self) -> None:
         rgba = HistogramStyle(color="red", alpha_face=0.5).rgba_face
         assert _parse_rgba(rgba) == (255.0, 0.0, 0.0, 0.5)
 
-    def test_rgba_edge_uses_alpha_edge(self):
+    def test_rgba_edge_uses_alpha_edge(self) -> None:
         rgba = HistogramStyle(color="red", alpha_edge=0.25).rgba_edge
         assert _parse_rgba(rgba) == (255.0, 0.0, 0.0, 0.25)
 
-    def test_rgba_face_with_rgb_tuple(self):
+    def test_rgba_face_with_rgb_tuple(self) -> None:
         # `color` is typed `str` (unlike Pen/Marker), so the tuple branch below is
         # unreachable through normal construction; bypass validation (via `setattr`, so
         # this deliberate bypass isn't also a static type error) to exercise it.
@@ -72,31 +72,33 @@ class TestColorMath:
         setattr(style, "color", (1.0, 0.0, 0.0))
         assert _parse_rgba(style.rgba_face) == (255.0, 0.0, 0.0, 0.5)
 
-    def test_rgba_face_with_rgba_tuple_uses_tuples_own_alpha(self):
+    def test_rgba_face_with_rgba_tuple_uses_tuples_own_alpha(self) -> None:
         style = HistogramStyle(color="k", alpha_face=1.0)
         setattr(style, "color", (1.0, 0.0, 0.0, 0.75))
         assert _parse_rgba(style.rgba_face) == (255.0, 0.0, 0.0, 0.75)
 
-    def test_get_face_contrast_color_dark_at_full_opacity(self):
+    def test_get_face_contrast_color_dark_at_full_opacity(self) -> None:
         assert (
             HistogramStyle(color="black", alpha_face=1.0).get_face_contrast_color()
             == "white"
         )
 
-    def test_get_face_contrast_color_light_at_full_opacity(self):
+    def test_get_face_contrast_color_light_at_full_opacity(self) -> None:
         assert (
             HistogramStyle(color="white", alpha_face=1.0).get_face_contrast_color()
             == "black"
         )
 
-    def test_get_face_contrast_color_at_default_alpha_blends_toward_background(self):
+    def test_get_face_contrast_color_at_default_alpha_blends_toward_background(
+        self,
+    ) -> None:
         # `alpha_face` defaults to 0.3, so even a "black" face is mostly the (white)
         # background by default, and needs dark, not light, contrast text.
         assert HistogramStyle(color="black").get_face_contrast_color() == "black"
 
 
 class TestHistogramEntryAddToPlotly:
-    def test_first_entry_creates_a_new_trace(self):
+    def test_first_entry_creates_a_new_trace(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         entry = HistogramEntry(tags=["t"], value=1.0, style=HistogramStyle(label="a"))
         entry.add_to_plotly(pf)
@@ -104,7 +106,7 @@ class TestHistogramEntryAddToPlotly:
         assert len(traces) == 1
         assert list(traces[0].x or ()) == [1.0]
 
-    def test_second_entry_with_same_style_merges_into_existing_trace(self):
+    def test_second_entry_with_same_style_merges_into_existing_trace(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         HistogramEntry(
             tags=["t"], value=1.0, style=HistogramStyle(label="a")
@@ -117,7 +119,7 @@ class TestHistogramEntryAddToPlotly:
         assert len(traces) == 1
         assert list(traces[0].x or ()) == [1.0, 2.0]
 
-    def test_entry_with_different_style_creates_a_separate_trace(self):
+    def test_entry_with_different_style_creates_a_separate_trace(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         HistogramEntry(
             tags=["t"], value=1.0, style=HistogramStyle(label="a")

@@ -1,21 +1,21 @@
 <p align="center">
-    <img alt="Trendify" src="https://raw.githubusercontent.com/TalbotKnighton/trendify/refs/heads/main/docs/assets/read-me-banner.png" style="width: 100%">
+    <img alt="Trendify" src="https://raw.githubusercontent.com/Hydrowelder/trendify/refs/heads/main/docs/assets/read-me-banner.png" style="width: 100%">
 </p>
 
 # trendify: Efficient Plotting and Table Building
 
 <p align="center">
-  <a href="https://pypi.org/project/trendify/" class="badge-link">
-    <img src="https://img.shields.io/pypi/v/trendify.svg?cacheSeconds=300" alt="PyPI version">
+  <a href="https://pypi.org/project/trendify2/" class="badge-link">
+    <img src="https://img.shields.io/pypi/v/trendify2.svg?cacheSeconds=300" alt="PyPI version">
   </a>
-  <a href="https://pypi.org/project/trendify/" class="badge-link">
-    <img src="https://img.shields.io/pypi/pyversions/trendify.svg?cacheSeconds=86400" alt="Python versions">
+  <a href="https://pypi.org/project/trendify2/" class="badge-link">
+    <img src="https://img.shields.io/pypi/pyversions/trendify2.svg?cacheSeconds=86400" alt="Python versions">
   </a>
-  <a href="https://github.com/talbotknighton/trendify/actions/workflows/publish.yml" class="badge-link">
-    <img src="https://github.com/talbotknighton/trendify/actions/workflows/publish.yml/badge.svg?branch=main" alt="Tests & Release Status">
+  <a href="https://github.com/Hydrowelder/trendify/actions/workflows/publish.yml" class="badge-link">
+    <img src="https://github.com/Hydrowelder/trendify/actions/workflows/publish.yml/badge.svg?branch=main" alt="Tests & Release Status">
   </a>
-  <a href="https://github.com/talbotknighton/trendify/actions/workflows/workflow.yml" class="badge-link">
-    <img src="https://raw.githubusercontent.com/talbotknighton/trendify/refs/heads/main/docs/assets/coverage-badge.svg" alt="Coverage">
+  <a href="https://github.com/Hydrowelder/trendify/actions/workflows/workflow.yml" class="badge-link">
+    <img src="https://raw.githubusercontent.com/Hydrowelder/trendify/refs/heads/main/docs/assets/coverage-badge.svg" alt="Coverage">
   </a>
   <a href="https://github.com/astral-sh/ruff" class="badge-link">
     <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff">
@@ -26,7 +26,7 @@
   <a href="https://opensource.org/licenses/MIT" class="badge-link">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
   </a>
-  <a href="https://talbotknighton.github.io/trendify/" class="badge-link">
+  <a href="https://Hydrowelder.github.io/trendify/" class="badge-link">
     <img src="https://img.shields.io/badge/docs-GitHub_Pages-blue.svg" alt="Documentation">
   </a>
 </p>
@@ -38,13 +38,13 @@
 Install the package via your preferred manager:
 
 ```bash linenums="0"
-uv add trendify
+uv add trendify2
 ```
 
 or with `pip`:
 
 ```bash linenums="0"
-pip install trendify
+pip install trendify2
 ```
 
 ---

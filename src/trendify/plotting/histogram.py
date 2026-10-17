@@ -7,7 +7,7 @@ used by both renderers).
 from __future__ import annotations
 
 import logging
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 import plotly.graph_objects as go
@@ -79,7 +79,7 @@ class HistogramStyle(HashableBase):
             self.alpha_edge = 1
         return self
 
-    def as_plot_kwargs(self):
+    def as_plot_kwargs(self) -> dict[str, Any]:
         """
         Returns:
             (dict): kwargs for matplotlib `hist` method
@@ -183,7 +183,7 @@ class HistogramStyle(HashableBase):
             a = rgba_vals[3]
 
         # Calculate relative luminance of the pen's color
-        def luminance(channel):
+        def luminance(channel: float) -> float:
             channel /= 255.0
             return (
                 channel / 12.92

@@ -9,6 +9,15 @@ import type { PlotConfig } from "./plot-config.generated";
 
 export type Tag = string | number | (string | number)[];
 
+/**
+ * URL prefix the viewer is served under: "/viz" when it is mounted at that path in another app,
+ * "" at the root. The server writes it into the page, so API calls work wherever it is hosted.
+ */
+export function basePath(): string {
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="trendify-base"]');
+  return (meta?.content ?? "").replace(/\/+$/, "");
+}
+
 export interface FetchOptions {
   signal?: AbortSignal;
   priority?: RequestPriority;
@@ -82,7 +91,7 @@ export function getTable(
   view: TableView,
   options?: FetchOptions,
 ): Promise<TableResponse> {
-  const url = `/api/table?tag=${encodeURIComponent(JSON.stringify(tag))}&view=${view}`;
+  const url = `${basePath()}/api/table?tag=${encodeURIComponent(JSON.stringify(tag))}&view=${view}`;
   return cachedGet<TableResponse>(url, options);
 }
 
@@ -110,7 +119,7 @@ export function getPlot(
   if (config.maxPoints != null) {
     params.set("max_points", String(config.maxPoints));
   }
-  return cachedGet<PlotResponse>(`/api/plot?${params.toString()}`, options);
+  return cachedGet<PlotResponse>(`${basePath()}/api/plot?${params.toString()}`, options);
 }
 
 export interface TagNode {
@@ -123,7 +132,7 @@ export interface TagNode {
 }
 
 export function getTags(options?: FetchOptions): Promise<TagNode[]> {
-  return cachedGet<TagNode[]>("/api/tags", options);
+  return cachedGet<TagNode[]>(`${basePath()}/api/tags`, options);
 }
 
 /** `err instanceof DOMException && err.name === "AbortError"`, but also covers non-DOM-shaped

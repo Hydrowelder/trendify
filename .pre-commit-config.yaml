@@ -18,16 +18,25 @@ repos:
     rev: 0.11.21
     hooks:
       - id: uv-export
-  - repo: https://github.com/RobertCraigie/pyright-python
-    rev: v1.1.411
+  - repo: https://github.com/astral-sh/ty-pre-commit
+    # ty version.
+    rev: v0.0.89
     hooks:
-      - id: pyright
-      - id: pyright
-        name: Pyright (docs examples)
-        args: [docs]
-        pass_filenames: false
-        always_run: true
-        stages: [pre-commit]
+      - id: ty
+        # ty checks against the project environment that `uv check` syncs from uv.lock, not
+        # pre-commit's own, so the optional extras must be installed for their imports to
+        # resolve (pydantic_ai, mjviser, viser); --frozen keeps uv.lock from being updated
+        args: [--frozen, --all-extras]
+  # - repo: https://github.com/RobertCraigie/pyright-python
+  #   rev: v1.1.411
+  #   hooks:
+  #     - id: pyright
+  #     - id: pyright
+  #       name: Pyright (docs examples)
+  #       args: [docs]
+  #       pass_filenames: false
+  #       always_run: true
+  #       stages: [pre-commit]
   - repo: local
     hooks:
       - id: act-test

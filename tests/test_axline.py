@@ -15,13 +15,13 @@ def _layout(pf: PlotlyFigure) -> Any:
 
 
 class TestPlotToAx:
-    def test_horizontal_draws_an_hline(self):
+    def test_horizontal_draws_an_hline(self) -> None:
         axline = AxLine(tags=["t"], value=1.5, orientation=LineOrientation.HORIZONTAL)
         saf = SingleAxisFigure.new(tag="t")
         axline.plot_to_ax(saf.ax)
         assert len(saf.ax.lines) == 1
 
-    def test_vertical_draws_a_vline(self):
+    def test_vertical_draws_a_vline(self) -> None:
         axline = AxLine(tags=["t"], value=2.0, orientation=LineOrientation.VERTICAL)
         saf = SingleAxisFigure.new(tag="t")
         axline.plot_to_ax(saf.ax)
@@ -29,7 +29,7 @@ class TestPlotToAx:
 
 
 class TestAddToPlotly:
-    def test_horizontal_adds_a_shape_and_annotation_at_the_value(self):
+    def test_horizontal_adds_a_shape_and_annotation_at_the_value(self) -> None:
         axline = AxLine(
             tags=["t"],
             value=1.5,
@@ -48,7 +48,7 @@ class TestAddToPlotly:
         assert len(layout.annotations) == 1
         assert layout.annotations[0].text == "href"
 
-    def test_vertical_adds_a_shape_and_annotation_at_the_value(self):
+    def test_vertical_adds_a_shape_and_annotation_at_the_value(self) -> None:
         axline = AxLine(
             tags=["t"],
             value=2.0,
@@ -67,7 +67,7 @@ class TestAddToPlotly:
         assert len(layout.annotations) == 1
         assert layout.annotations[0].text == "vref"
 
-    def test_shapes_and_annotations_are_never_shown_in_the_legend(self):
+    def test_shapes_and_annotations_are_never_shown_in_the_legend(self) -> None:
         axline = AxLine(tags=["t"], value=1.0, orientation=LineOrientation.HORIZONTAL)
         pf = PlotlyFigure.new(tag="t")
         axline.add_to_plotly(pf)
@@ -88,12 +88,12 @@ class TestUnrecognizedOrientation:
         setattr(axline, "orientation", "diagonal")
         return axline
 
-    def test_plot_to_ax_logs_and_draws_nothing(self):
+    def test_plot_to_ax_logs_and_draws_nothing(self) -> None:
         saf = SingleAxisFigure.new(tag="t")
         self._axline_with_bogus_orientation().plot_to_ax(saf.ax)
         assert len(saf.ax.lines) == 0
 
-    def test_add_to_plotly_logs_and_adds_nothing(self):
+    def test_add_to_plotly_logs_and_adds_nothing(self) -> None:
         pf = PlotlyFigure.new(tag="t")
         result = self._axline_with_bogus_orientation().add_to_plotly(pf)
         assert result is pf

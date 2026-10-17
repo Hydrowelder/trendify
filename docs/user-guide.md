@@ -177,6 +177,29 @@ trendify run \
 trendify viewer ./data/trendify/trendify.db
 ```
 
+### Embedding the Viewer in Your Own Site
+
+The viewer is an ordinary FastAPI app, so an existing FastAPI site can serve it and show it in an `<iframe>`:
+
+```python linenums="0"
+from fastapi import FastAPI
+from trendify.viewer.app import create_app
+
+site = FastAPI()
+site.mount("/viz", create_app("data/trendify/trendify.db", show_db_path=False))
+```
+
+```html linenums="0"
+<iframe src="/viz/" title="Trendify viewer" allow="fullscreen; clipboard-write"
+        style="width: 100%; height: 80vh; border: 0"></iframe>
+```
+
+- **Where it lives:** a path prefix (as above) or its own hostname (`Host("viewer.example.com", app=...)`) both work, and your site's startup needs no changes. `show_db_path=False` keeps the server's file path out of the page.
+- **Access control:** the viewer has no login of its own, so put it behind your site's. A small ASGI wrapper around the mounted app protects its pages and data in one place.
+- **CORS:** not needed for an iframe, because the viewer only talks to its own address. Only if scripts on *your* page fetch from the viewer's API, pass `cors_origins=["https://your-site.example"]`.
+- **Security headers:** if your site sets `X-Frame-Options` or `frame-ancestors`, allow framing on the viewer's path. If it sets a Content Security Policy, the viewer's pages need one that allows inline scripts and styles and `unsafe-eval`, for example `script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:`.
+- **Other sites:** browsers that block third-party storage can't save the viewer's theme and layout when it is framed from a different site. It still works; those settings just reset on reload.
+
 ---
 
 !!! success

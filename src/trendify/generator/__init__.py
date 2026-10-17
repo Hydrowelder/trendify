@@ -1,3 +1,5 @@
+"""Pipeline stages: generating records from run directories, then rendering plots and tables."""
+
 from trendify.generator import generate
 from trendify.generator import histogrammer
 from trendify.generator import render

@@ -39,7 +39,7 @@ class TableEntry(Record):
 
     model_config = ConfigDict(extra="forbid")
 
-    def get_entry_dict(self):
+    def get_entry_dict(self) -> dict[str, float | str | bool | None]:
         """
         Returns a dictionary of entries to be used in creating a table.
 

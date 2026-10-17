@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
+from trendify.viewer.hydration import RunnerClosed
 from trendify.viewer.tag_tree import build_tag_tree
 
 __all__ = ["router"]
@@ -23,11 +24,16 @@ router = APIRouter()
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> HTMLResponse:
-    # `async def`, not `def`: FastAPI runs sync route handlers in a threadpool, but the
-    # RecordStore's sqlite3 connection is thread-affine to whatever thread opened it (the
-    # main thread, in create_app). An `async def` handler that never awaits stays on the
-    # event loop's thread instead, matching the connection's affinity.
-    store = request.app.state.store
-    tag_tree = build_tag_tree(store)
-    templates = request.app.state.templates
-    return templates.TemplateResponse(request, "index.html", {"tag_tree": tag_tree})
+    # The tag tree is built on the store's worker thread, off the event loop (see
+    # `viewer.app.create_app`). `root_path` is the prefix this app is mounted under ("" when it
+    # is served at the root), so every URL in the page can be built from it.
+    try:
+        tag_tree = await request.app.state.runner.run(build_tag_tree)
+    except RunnerClosed as error:
+        raise HTTPException(
+            status_code=503, detail="The viewer is shutting down."
+        ) from error
+    root_path = request.scope.get("root_path", "").rstrip("/")
+    return request.app.state.templates.TemplateResponse(
+        request, "index.html", {"tag_tree": tag_tree, "root_path": root_path}
+    )

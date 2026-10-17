@@ -17,7 +17,7 @@ def _parse_rgba(s: str) -> tuple[float, float, float, float]:
 
 
 class TestRgba:
-    def test_string_color(self):
+    def test_string_color(self) -> None:
         assert _parse_rgba(Marker(color="red", alpha=1.0).rgba) == (
             255.0,
             0.0,
@@ -25,31 +25,31 @@ class TestRgba:
             1.0,
         )
 
-    def test_rgb_tuple(self):
+    def test_rgb_tuple(self) -> None:
         rgba = Marker(color=(1.0, 0.0, 0.0), alpha=0.5).rgba
         assert _parse_rgba(rgba) == (255.0, 0.0, 0.0, 0.5)
 
-    def test_rgba_tuple_alpha_overrides_marker_alpha(self):
+    def test_rgba_tuple_alpha_overrides_marker_alpha(self) -> None:
         marker = Marker(color=(1.0, 0.0, 0.0, 0.25), alpha=1.0)
         assert marker.rgba == "rgba(255, 0, 0, 0.25)"
 
 
 class TestGetContrastColor:
-    def test_white_text_on_dark_color(self):
+    def test_white_text_on_dark_color(self) -> None:
         assert Marker(color="black").get_contrast_color() == "white"
 
-    def test_black_text_on_light_color(self):
+    def test_black_text_on_light_color(self) -> None:
         assert Marker(color="white").get_contrast_color() == "black"
 
-    def test_works_with_rgb_tuple(self):
+    def test_works_with_rgb_tuple(self) -> None:
         assert Marker(color=(0.0, 0.0, 0.0)).get_contrast_color() == "white"
 
-    def test_works_with_rgba_tuple(self):
+    def test_works_with_rgba_tuple(self) -> None:
         assert Marker(color=(0.0, 0.0, 0.0, 1.0)).get_contrast_color() == "white"
 
 
 class TestFromPen:
-    def test_carries_over_shared_fields_and_drops_linestyle(self):
+    def test_carries_over_shared_fields_and_drops_linestyle(self) -> None:
         pen = Pen(color="blue", size=3, alpha=0.7, zorder=2, label="x", linestyle="--")
         marker = Marker.from_pen(pen, symbol="^")
         assert marker.color == "blue"
@@ -61,9 +61,9 @@ class TestFromPen:
 
 
 class TestPlotlySymbol:
-    def test_known_symbol_maps_to_plotly_name(self):
+    def test_known_symbol_maps_to_plotly_name(self) -> None:
         assert Marker(symbol="o").plotly_symbol == "circle"
         assert Marker(symbol="D").plotly_symbol == "diamond"
 
-    def test_unknown_symbol_falls_back_to_circle(self):
+    def test_unknown_symbol_falls_back_to_circle(self) -> None:
         assert Marker(symbol="?").plotly_symbol == "circle"

@@ -11,7 +11,7 @@ import logging
 import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Self, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -79,7 +79,7 @@ class SingleAxisFigure:
             ax=ax,
         )
 
-    def apply_format(self, format2d: Format2D):
+    def apply_format(self, format2d: Format2D) -> Self:
         """
         Applies format to figure and axes labels and limits
 
@@ -132,7 +132,7 @@ class SingleAxisFigure:
         self.fig.tight_layout(rect=(0, 0.03, 1, 0.95))
         return self
 
-    def apply_grid(self, grid: Grid):
+    def apply_grid(self, grid: Grid) -> None:
         self.ax.set_axisbelow(True)
 
         # Major grid
@@ -168,7 +168,7 @@ class SingleAxisFigure:
         else:
             self.ax.grid(visible=False, which="minor")
 
-    def savefig(self, path: Path, dpi: int | None = None):
+    def savefig(self, path: Path, dpi: int | None = None) -> Self:
         """
         Wrapper on matplotlib savefig method. Saves figure to given path, at the given `dpi`
         for raster output. `dpi` is meaningless for vector output (e.g. `.svg`), so `None`
@@ -225,7 +225,7 @@ class PlotlyFigure:
         fig = go.Figure()
         return cls(tag=tag, fig=fig)
 
-    def apply_format(self, format2d: Format2D):
+    def apply_format(self, format2d: Format2D) -> Self:
         """
         Applies format to Plotly figure layout including axes labels and limits
 
@@ -254,7 +254,7 @@ class PlotlyFigure:
             layout_updates["yaxis"] = cast(dict[str, Any], {"title": format2d.label_y})
 
         # Set axis ranges
-        def _log10(v: float | None):
+        def _log10(v: float | None) -> float | None:
             return None if v is None else np.log10(v)
 
         if format2d.lim_x[0] is not None or format2d.lim_x[1] is not None:
@@ -318,7 +318,7 @@ class PlotlyFigure:
         self.fig.update_layout(**layout_updates)
         return self
 
-    def apply_grid(self, grid: Grid):
+    def apply_grid(self, grid: Grid) -> None:
         """
         Applies grid settings to the Plotly figure
 

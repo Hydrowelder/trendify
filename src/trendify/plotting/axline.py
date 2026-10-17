@@ -47,7 +47,7 @@ class AxLine(PlottableData2D):
 
     model_config = ConfigDict(extra="forbid")
 
-    def plot_to_ax(self, ax: Axes):
+    def plot_to_ax(self, ax: Axes) -> None:
         """
         Plots line to matplotlib axes object.
 

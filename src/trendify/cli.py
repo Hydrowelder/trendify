@@ -12,8 +12,8 @@ import importlib.util
 import logging
 import os
 import sys
-from importlib.metadata import version
 from pathlib import Path
+from types import ModuleType
 from typing import cast
 
 import typer
@@ -22,6 +22,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
+from trendify.__about__ import __version__
 from trendify.base.record import RecordGenerator
 from trendify.color import Color
 from trendify.examples import make_example_data
@@ -33,7 +34,6 @@ __all__ = ["app"]
 
 logger = logging.getLogger(__name__)
 console = Console()
-VERSION = version("trendify")
 
 _LOGO_LINES = [
     "████████╗██████╗ ███████╗███╗   ██╗██████╗ ██╗███████╗██╗   ██╗",
@@ -53,7 +53,7 @@ _SHADES = [
 ]
 
 
-def print_logo():
+def print_logo() -> None:
     body = Text()
     for i, (line, shade) in enumerate(zip(_LOGO_LINES, _SHADES)):
         body.append(line, style=f"bold {shade}")
@@ -65,7 +65,7 @@ def print_logo():
             Align.center(body),
             expand=False,
             border_style="indian_red1",
-            subtitle=f"[dim]v{VERSION}[/dim]",
+            subtitle=f"[dim]v{__version__}[/dim]",
         )
     )
 
@@ -78,16 +78,16 @@ app = typer.Typer(
 )
 
 
-def version_callback(value: bool):
+def version_callback(value: bool) -> None:
     if value:
         console.print(
-            f"[bold indian_red1]trendify[/bold indian_red1] [bold white]{VERSION}"
+            f"[bold indian_red1]trendify[/bold indian_red1] [bold white]{__version__}"
         )
         raise typer.Exit()
 
 
 @app.callback(
-    epilog="Check out the [link=https://github.com/talbotknighton/trendify/]full documentation[/link] for more info."
+    epilog="Check out the [link=https://github.com/Hydrowelder/trendify/]full documentation[/link] for more info."
 )
 def main(
     ctx: typer.Context,
@@ -98,7 +98,7 @@ def main(
         is_eager=True,
         help="Show version and exit.",
     ),
-):
+) -> None:
     """
     [bold indian_red1]Trendify:[/bold indian_red1] Generate visual records and static assets from raw data.
     """
@@ -168,6 +168,15 @@ ExampleNFoldersOption = typer.Option(
     "--n-folders",
     help="Number of sample data sets (subfolders) to generate.",
 )
+ExampleNColsOption = typer.Option(
+    3,
+    "--n-cols",
+    help=(
+        "Data columns per results.csv. The first 3 are the plotted waveforms; any beyond that "
+        "are unused filler that only make reading each file more expensive."
+    ),
+    min=3,
+)
 HostOption = typer.Option(
     "127.0.0.1",
     "--host",
@@ -217,7 +226,7 @@ def _resolve_input_directories(patterns: list[str], ctx: typer.Context) -> list[
     return dirs
 
 
-def _import_from_path(module_name: str, file_path: Path):
+def _import_from_path(module_name: str, file_path: Path) -> ModuleType:
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     if spec is None or spec.loader is None:
         raise typer.BadParameter(f"Could not import {file_path} as a Python module")
@@ -321,16 +330,17 @@ def example_data(
     ctx: typer.Context,
     workdir: Path = ExampleWorkdirOption,
     n_folders: int = ExampleNFoldersOption,
+    n_cols: int = ExampleNColsOption,
     verbose: int = VerboseOption,
     quiet: int = QuietOption,
 ) -> None:
     """Generate sample raw-data directories for exercising the trendify pipeline."""
     logger = _configure_logging(verbose, quiet)
-    make_example_data(workdir=workdir, n_folders=n_folders)
+    make_example_data(workdir=workdir, n_folders=n_folders, n_cols=n_cols)
     logger.info(f"Wrote {n_folders} sample data folders under {workdir / 'models'}")
 
 
-def get_local_ip():
+def get_local_ip() -> str:
     """Returns the actual local IP address of this machine."""
     import socket
 
@@ -367,17 +377,9 @@ def viewer(
 
     # Deferred import: keeps `trendify.cli` import light for callers of generate/render/run
     # who never touch the dashboard (FastAPI/Jinja2/uvicorn stay unimported until needed).
-    import uvicorn
+    from trendify.viewer.app import create_app, make_server
 
-    from trendify.viewer.app import create_app
-
-    password = None  # not supported yet
-    if password:
-        connection_info = "[yellow]Auth enabled. Use [u]any[/u] username and your provided password.[/yellow]\n\n"
-    else:
-        connection_info = ""
-
-    connection_info += (
+    connection_info = (
         f"Local: [bold indian_red1 u]http://127.0.0.1:{port}[/bold indian_red1 u]"
     )
     if host == "0.0.0.0":
@@ -394,7 +396,7 @@ def viewer(
         )
     )
 
-    uvicorn.run(create_app(db_path), host=host, port=port, log_level="critical")
+    make_server(create_app(db_path), host=host, port=port).run()
 
 
 if __name__ == "__main__":

@@ -1,3 +1,5 @@
+"""Plot formatting (`Format2D`) and table entry records."""
+
 from trendify.formats import format2d
 from trendify.formats import table
 

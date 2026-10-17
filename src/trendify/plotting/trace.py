@@ -49,7 +49,7 @@ class Trace2D(XYData):
     """Draw a marker every Nth point when `marker` is set (passed straight through to
     matplotlib's `Axes.plot(markevery=...)`); `None` marks every point."""
 
-    def plot_to_ax(self, ax: Axes):
+    def plot_to_ax(self, ax: Axes) -> None:
         """
         Plots xy data from trace to a matplotlib axes object.
 

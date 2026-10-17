@@ -24,14 +24,14 @@ def _make_run_dirs(tmp_path: Path, n: int) -> list[Path]:
 
 
 class TestTrendifyPipelinePaths:
-    def test_db_path_and_assets_dir(self, tmp_path: Path):
+    def test_db_path_and_assets_dir(self, tmp_path: Path) -> None:
         pipeline = TrendifyPipeline(output_dir=tmp_path)
         assert pipeline.db_path == tmp_path / "trendify.db"
         assert pipeline.assets_dir == tmp_path / "assets"
 
 
 class TestGenerate:
-    def test_writes_records(self, tmp_path: Path):
+    def test_writes_records(self, tmp_path: Path) -> None:
         dirs = _make_run_dirs(tmp_path, 3)
         pipeline = TrendifyPipeline(output_dir=tmp_path / "out")
 
@@ -43,7 +43,7 @@ class TestGenerate:
 
 
 class TestRender:
-    def test_writes_figure_for_tag(self, tmp_path: Path):
+    def test_writes_figure_for_tag(self, tmp_path: Path) -> None:
         dirs = _make_run_dirs(tmp_path, 2)
         pipeline = TrendifyPipeline(output_dir=tmp_path / "out")
         pipeline.generate(_generator, dirs)
@@ -54,7 +54,7 @@ class TestRender:
 
 
 class TestRun:
-    def test_generates_and_renders_end_to_end(self, tmp_path: Path):
+    def test_generates_and_renders_end_to_end(self, tmp_path: Path) -> None:
         dirs = _make_run_dirs(tmp_path, 3)
         pipeline = TrendifyPipeline(output_dir=tmp_path / "out", n_procs=2)
 
@@ -63,7 +63,7 @@ class TestRun:
         assert total == 3
         assert (pipeline.assets_dir / "scatter.jpg").exists()
 
-    def test_on_progress_covers_both_stages(self, tmp_path: Path):
+    def test_on_progress_covers_both_stages(self, tmp_path: Path) -> None:
         dirs = _make_run_dirs(tmp_path, 2)
         pipeline = TrendifyPipeline(output_dir=tmp_path / "out")
         events: list[ProgressEvent] = []

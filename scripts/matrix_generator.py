@@ -18,7 +18,7 @@ in a test and handed to `RecordStore.write_run`.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 
@@ -189,7 +189,7 @@ def _add_legend_option_combinations(records: RecordList) -> None:
 
 
 def _add_format2d_limit_combinations(records: RecordList) -> None:
-    limit_variants = {
+    limit_variants: dict[str, dict[str, Any]] = {
         "lim_x_min_set": {"lim_x": (0.3, None)},
         "lim_x_max_set": {"lim_x": (None, 0.7)},
         "lim_y_min_set": {"lim_y": (-0.5, None)},
@@ -208,7 +208,7 @@ def _add_format2d_limit_combinations(records: RecordList) -> None:
 
 
 def _add_format2d_size_and_label_combinations(records: RecordList) -> None:
-    field_variants = {
+    field_variants: dict[str, dict[str, Any]] = {
         "figure_width_custom": {"figure_width": 12.0},
         "figure_height_custom": {"figure_height": 10.0},
         "title_fig_set": {"title_fig": "Figure title"},
@@ -889,7 +889,7 @@ if __name__ == "__main__":
         except FileNotFoundError:
             pass
 
-        def run():
+        def run() -> None:
             pipeline = TrendifyPipeline(output_dir=output_directory, n_procs=n_proc)
             pipeline.run(
                 record_generator=build_configuration_matrix,

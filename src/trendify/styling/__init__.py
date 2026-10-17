@@ -1,3 +1,5 @@
+"""Styling objects for plots: markers, grids, and legends."""
+
 from trendify.styling import grid
 from trendify.styling import legend
 from trendify.styling import marker

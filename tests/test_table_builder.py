@@ -1,5 +1,6 @@
 """Tests for table building"""
 
+from collections.abc import Iterator
 from pathlib import Path
 
 import polars as pl
@@ -11,13 +12,13 @@ from trendify.generator.table_builder import TableBuilder
 
 
 @pytest.fixture
-def store(tmp_path: Path):
+def store(tmp_path: Path) -> Iterator[RecordStore]:
     with RecordStore.open(tmp_path / "trendify.db") as s:
         yield s
 
 
 class TestPivotTable:
-    def test_pivots_row_col_value(self):
+    def test_pivots_row_col_value(self) -> None:
         melted = pl.DataFrame(
             {
                 "row": ["r1", "r1", "r2"],
@@ -30,7 +31,7 @@ class TestPivotTable:
         assert set(pivot.columns) == {"row", "c1", "c2"}
         assert pivot.height == 2
 
-    def test_duplicate_row_col_pair_returns_none(self):
+    def test_duplicate_row_col_pair_returns_none(self) -> None:
         melted = pl.DataFrame(
             {"row": ["r1", "r1"], "col": ["c1", "c1"], "value": [1.0, 2.0]}
         )
@@ -38,7 +39,7 @@ class TestPivotTable:
 
 
 class TestGetStatsTable:
-    def test_computes_stats_for_numeric_columns(self):
+    def test_computes_stats_for_numeric_columns(self) -> None:
         pivot = pl.DataFrame({"row": ["r1", "r2", "r3"], "c1": [1.0, 2.0, 3.0]})
         stats = TableBuilder.get_stats_table(pivot)
         assert stats is not None
@@ -48,18 +49,18 @@ class TestGetStatsTable:
         assert row["mean"] == 2.0
         assert row["max"] == 3.0
 
-    def test_coerces_non_numeric_to_null(self):
+    def test_coerces_non_numeric_to_null(self) -> None:
         pivot = pl.DataFrame({"row": ["r1", "r2"], "c1": ["hello", "world"]})
         stats = TableBuilder.get_stats_table(pivot)
         assert stats is None
 
-    def test_no_value_columns_returns_none(self):
+    def test_no_value_columns_returns_none(self) -> None:
         pivot = pl.DataFrame({"row": ["r1", "r2"]})
         assert TableBuilder.get_stats_table(pivot) is None
 
 
 class TestProcessTableEntries:
-    def test_writes_melted_pivot_and_stats_csvs(self, tmp_path: Path):
+    def test_writes_melted_pivot_and_stats_csvs(self, tmp_path: Path) -> None:
         melted = pl.DataFrame(
             {
                 "row": ["r1", "r1", "r2", "r2"],
@@ -74,7 +75,7 @@ class TestProcessTableEntries:
         assert (tmp_path / "mytag_pivot.csv").exists()
         assert (tmp_path / "mytag_stats.csv").exists()
 
-    def test_tuple_tag_nests_output_directory(self, tmp_path: Path):
+    def test_tuple_tag_nests_output_directory(self, tmp_path: Path) -> None:
         melted = pl.DataFrame(
             {"row": ["r1"], "col": ["c1"], "value": [1.0], "unit": [None]}
         )
@@ -83,14 +84,16 @@ class TestProcessTableEntries:
         )
         assert (tmp_path / "group" / "mytag_melted.csv").exists()
 
-    def test_empty_melted_writes_nothing(self, tmp_path: Path):
+    def test_empty_melted_writes_nothing(self, tmp_path: Path) -> None:
         melted = pl.DataFrame(
             schema={"row": pl.Utf8, "col": pl.Utf8, "value": pl.Float64}
         )
         TableBuilder.process_table_entries(tag="empty", melted=melted, out_dir=tmp_path)
         assert list(tmp_path.iterdir()) == []
 
-    def test_heterogeneous_value_types_write_csv_without_error(self, tmp_path: Path):
+    def test_heterogeneous_value_types_write_csv_without_error(
+        self, tmp_path: Path
+    ) -> None:
         # Object-dtype "value" column, as returned by RecordStore.get_table_entries.
         melted = pl.DataFrame(
             {
@@ -115,7 +118,9 @@ class TestProcessTableEntries:
 
 
 class TestProcessTableEntriesFromStore:
-    def test_round_trips_through_record_store(self, store: RecordStore, tmp_path: Path):
+    def test_round_trips_through_record_store(
+        self, store: RecordStore, tmp_path: Path
+    ) -> None:
         records = [
             TableEntry(tags=["tbl"], row="r1", col="c1", value=1.0),
             TableEntry(tags=["tbl"], row="r1", col="c2", value=2.0),

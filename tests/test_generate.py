@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from trendify.base.pen import Pen
+from trendify.base.record import RecordList
 from trendify.generator.generate import generate_records, get_sorted_dirs
 from trendify.plotting.point import Point2D
 from trendify.plotting.trace import Trace2D
@@ -12,7 +13,7 @@ from trendify.progress import ProgressEvent
 from trendify.store.record_store import RecordStore
 
 
-def _generator(run_dir: Path):
+def _generator(run_dir: Path) -> RecordList:
     n = int(run_dir.name)
     return [
         Point2D(tags=["points"], x=float(n), y=float(n) ** 2),
@@ -35,7 +36,7 @@ def _make_run_dirs(tmp_path: Path, n: int) -> list[Path]:
 
 
 class TestGetSortedDirs:
-    def test_sorts_numeric_dirs_numerically(self, tmp_path: Path):
+    def test_sorts_numeric_dirs_numerically(self, tmp_path: Path) -> None:
         dirs = [tmp_path / n for n in ["10", "2", "1"]]
         assert get_sorted_dirs(dirs) == [
             tmp_path / "1",
@@ -43,13 +44,13 @@ class TestGetSortedDirs:
             tmp_path / "10",
         ]
 
-    def test_falls_back_to_alphabetical(self, tmp_path: Path):
+    def test_falls_back_to_alphabetical(self, tmp_path: Path) -> None:
         dirs = [tmp_path / n for n in ["b", "a", "c"]]
         assert get_sorted_dirs(dirs) == [tmp_path / n for n in ["a", "b", "c"]]
 
 
 class TestGenerateRecordsSequential:
-    def test_writes_all_runs_to_store(self, tmp_path: Path):
+    def test_writes_all_runs_to_store(self, tmp_path: Path) -> None:
         run_dirs = _make_run_dirs(tmp_path, 5)
         db_path = tmp_path / "trendify.db"
 
@@ -60,7 +61,7 @@ class TestGenerateRecordsSequential:
             assert len(store.get_records_of_type(Point2D)) == 5
             assert len(store.get_records_of_type(Trace2D, tag=("traces", "run"))) == 5
 
-    def test_rerunning_is_idempotent(self, tmp_path: Path):
+    def test_rerunning_is_idempotent(self, tmp_path: Path) -> None:
         run_dirs = _make_run_dirs(tmp_path, 3)
         db_path = tmp_path / "trendify.db"
 
@@ -72,7 +73,7 @@ class TestGenerateRecordsSequential:
 
 
 class TestGenerateRecordsParallel:
-    def test_matches_sequential_output(self, tmp_path: Path):
+    def test_matches_sequential_output(self, tmp_path: Path) -> None:
         run_dirs = _make_run_dirs(tmp_path, 8)
         db_path = tmp_path / "trendify.db"
 
@@ -85,7 +86,9 @@ class TestGenerateRecordsParallel:
 
 
 class TestOnProgress:
-    def test_sequential_reports_one_event_per_run_dir_in_order(self, tmp_path: Path):
+    def test_sequential_reports_one_event_per_run_dir_in_order(
+        self, tmp_path: Path
+    ) -> None:
         run_dirs = _make_run_dirs(tmp_path, 3)
         db_path = tmp_path / "trendify.db"
         events: list[ProgressEvent] = []
@@ -99,7 +102,7 @@ class TestOnProgress:
         assert [e.total for e in events] == [3, 3, 3]
         assert {e.detail for e in events} == {str(d) for d in run_dirs}
 
-    def test_parallel_reports_one_event_per_run_dir(self, tmp_path: Path):
+    def test_parallel_reports_one_event_per_run_dir(self, tmp_path: Path) -> None:
         run_dirs = _make_run_dirs(tmp_path, 5)
         db_path = tmp_path / "trendify.db"
         events: list[ProgressEvent] = []
@@ -115,7 +118,7 @@ class TestOnProgress:
         assert [e.completed for e in events] == [1, 2, 3, 4, 5]
         assert all(e.total == 5 for e in events)
 
-    def test_callback_error_propagates(self, tmp_path: Path):
+    def test_callback_error_propagates(self, tmp_path: Path) -> None:
         run_dirs = _make_run_dirs(tmp_path, 1)
         db_path = tmp_path / "trendify.db"
 

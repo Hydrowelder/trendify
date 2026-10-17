@@ -4,6 +4,8 @@
  * to avoid a flash of the wrong theme); this module owns the interactive selector afterward.
  */
 
+import { readStorage, removeStorage, writeStorage } from "./local-storage";
+
 const STORAGE_KEY = "trendify:theme";
 
 export type ThemeChoice = "light" | "dark" | "system";
@@ -13,7 +15,7 @@ function prefersDark(): boolean {
 }
 
 export function getStoredTheme(): ThemeChoice {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const stored = readStorage(STORAGE_KEY);
   return stored === "light" || stored === "dark" ? stored : "system";
 }
 
@@ -27,9 +29,9 @@ export function applyTheme(choice: ThemeChoice): void {
 
 export function setTheme(choice: ThemeChoice): void {
   if (choice === "system") {
-    localStorage.removeItem(STORAGE_KEY);
+    removeStorage(STORAGE_KEY);
   } else {
-    localStorage.setItem(STORAGE_KEY, choice);
+    writeStorage(STORAGE_KEY, choice);
   }
   applyTheme(choice);
 }

@@ -227,7 +227,11 @@ export function plotView() {
       this.render();
     },
 
-    destroy(this: { _teardown: (() => void) | null }) {
+    destroy(this: PlotViewContext & { _teardown: (() => void) | null }) {
+      // A `render()` still awaiting its response must not draw into the `$refs.plot` this
+      // unmount just removed: bumping `requestId` makes its stale-response guard return early.
+      this.requestId++;
+      this.currentAbortController?.abort();
       this._teardown?.();
     },
 
