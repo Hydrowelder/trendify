@@ -1,13 +1,14 @@
-"""Times generate_records over scripts/example_data/models with 1..N worker processes."""
+"""Times TrendifyPipeline.run (generate + render) over scripts/example_data/models with 1..N worker processes."""
 
 import argparse
+import shutil
 import sys
 import tempfile
 import time
 from pathlib import Path
 
 from trendify.examples import example_record_generator
-from trendify.generator.generate import generate_records
+from trendify.pipeline import TrendifyPipeline
 
 MODELS_DIR = Path(__file__).resolve().parent / "example_data" / "models"
 
@@ -24,16 +25,15 @@ def main() -> None:
             f"trendify example-data -w {MODELS_DIR.parent} -n 500 --n-cols 300"
         )
 
-    print(f"example_record_generator, {len(run_dirs)} runs from {MODELS_DIR}")
+    print(f"TrendifyPipeline.run, {len(run_dirs)} runs from {MODELS_DIR}")
     print(f"{'procs':>5} {'seconds':>8}")
     with tempfile.TemporaryDirectory() as tmp:
         for n in range(1, args.max_procs + 1):
-            db_path = Path(tmp) / f"n{n}.db"
+            pipeline = TrendifyPipeline(output_dir=Path(tmp) / f"n{n}", n_procs=n)
             start = time.perf_counter()
-            generate_records(example_record_generator, run_dirs, db_path, n_procs=n)
+            pipeline.run(example_record_generator, run_dirs)
             print(f"{n:>5} {time.perf_counter() - start:>8.2f}", flush=True)
-            for f in db_path.parent.glob(f"{db_path.name}*"):
-                f.unlink()
+            shutil.rmtree(pipeline.output_dir)
 
 
 if __name__ == "__main__":
