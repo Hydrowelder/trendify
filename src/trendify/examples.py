@@ -4,7 +4,6 @@ Sample data + a `RecordGenerator` used as a fixture for exercising the `trendify
 
 from __future__ import annotations
 
-from enum import StrEnum
 from pathlib import Path
 from typing import cast
 
@@ -16,22 +15,26 @@ import trendify
 __all__ = ["example_record_generator", "make_example_data"]
 
 
-class ColumnName(StrEnum):
-    TIME = "time"
-    WAVE_1 = "wave_1"
-    WAVE_2 = "wave_2"
-    WAVE_3 = "wave_3"
+# results.csv has a `time` column followed by `wave_1`, `wave_2`, ... counting upward. Only the
+# first N_PLOTTED_WAVES of those are plotted by `example_record_generator`.
+N_PLOTTED_WAVES = 3
 
 
-def make_example_data(workdir: Path, n_folders: int = 10):
+def make_example_data(workdir: Path, n_folders: int = 10, n_cols: int = 3):
     """
     Makes a highly diverse, varied sample dataset featuring distinct waveform signatures.
 
     Args:
         workdir (Path): Directory in which the sample data is to be generated
         n_folders (int): Number of sample data files to generate (in separate subfolders).
+        n_cols (int): Number of data columns in each `results.csv` (not counting `time`), named
+            `wave_1`, `wave_2`, ... counting upward. The first three are the waveforms
+            `example_record_generator` plots. Any beyond that (`wave_4` onward) are unused
+            filler that exist only to make reading each file more expensive.
 
     """
+    if n_cols < N_PLOTTED_WAVES:
+        raise ValueError(f"n_cols must be at least {N_PLOTTED_WAVES}, got {n_cols}")
     models_dir = workdir.joinpath("models")
     models_dir.mkdir(parents=True, exist_ok=True)
 
@@ -86,10 +89,17 @@ def make_example_data(workdir: Path, n_folders: int = 10):
         ).write_csv(subdir.joinpath("stdin.csv"), include_header=False)
 
         # Package channels cleanly matching your original structure
-        data_channels = [t, wave_1, wave_2, wave_3]
-        pl.DataFrame(dict(zip([str(e) for e in ColumnName], data_channels))).write_csv(
-            subdir.joinpath("results.csv")
-        )
+        columns = {"time": t, "wave_1": wave_1, "wave_2": wave_2, "wave_3": wave_3}
+
+        # Filler columns are drawn last, so the waveforms above (and every file written with
+        # the default n_cols) are identical whether or not filler is requested.
+        n_extra = n_cols - N_PLOTTED_WAVES
+        if n_extra:
+            filler = rng.normal(size=(len(t), n_extra))
+            for j in range(n_extra):
+                columns[f"wave_{N_PLOTTED_WAVES + 1 + j}"] = filler[:, j]
+
+        pl.DataFrame(columns).write_csv(subdir.joinpath("results.csv"))
 
 
 def transform(data: np.ndarray, scale: trendify.AxisScale) -> np.ndarray:
@@ -112,8 +122,11 @@ def example_record_generator(workdir: Path) -> trendify.RecordList:
     records = []
 
     df = pl.read_csv(workdir.joinpath("results.csv"))
-    time = df[ColumnName.TIME].to_numpy()
-    value_columns = [c for c in df.columns if c != ColumnName.TIME]
+    time = df["time"].to_numpy()
+    # Only the first N_PLOTTED_WAVES columns, not "every column but time": results.csv may carry
+    # unused filler (see `make_example_data`'s `n_cols`) that must not be plotted or tabulated.
+    # The whole file is still read above, so filler still costs read time.
+    value_columns = [f"wave_{i}" for i in range(1, N_PLOTTED_WAVES + 1)]
 
     colors = ["#FF0000", "#000B81", "#FFAA00"]
     alphas = [1.0, 0.3, 1.0]

@@ -177,6 +177,22 @@ class TestExampleDataCommand:
         assert result.exit_code == 0, result.output
         assert len(list((tmp_path / "models").glob("*/results.csv"))) == 3
 
+    def test_n_cols_sets_the_number_of_data_columns(self, tmp_path: Path):
+        result = runner.invoke(
+            app, ["example-data", "-w", str(tmp_path), "-n", "1", "--n-cols", "8"]
+        )
+
+        assert result.exit_code == 0, result.output
+        header = (tmp_path / "models" / "0" / "results.csv").read_text().splitlines()[0]
+        assert len(header.split(",")) == 1 + 8  # time + data columns
+
+    def test_n_cols_below_three_is_rejected(self, tmp_path: Path):
+        result = runner.invoke(
+            app, ["example-data", "-w", str(tmp_path), "-n", "1", "--n-cols", "2"]
+        )
+
+        assert result.exit_code != 0
+
 
 class TestRenderCommand:
     def test_renders_after_generate(self, tmp_path: Path):

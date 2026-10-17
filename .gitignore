@@ -36,3 +36,6 @@ discriminator_tests.log
 /**/.DS_Store
 
 *.prof
+
+# Benchmark output (sweep results are large and machine specific)
+benchmarks/results/

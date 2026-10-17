@@ -168,6 +168,15 @@ ExampleNFoldersOption = typer.Option(
     "--n-folders",
     help="Number of sample data sets (subfolders) to generate.",
 )
+ExampleNColsOption = typer.Option(
+    3,
+    "--n-cols",
+    help=(
+        "Data columns per results.csv. The first 3 are the plotted waveforms; any beyond that "
+        "are unused filler that only make reading each file more expensive."
+    ),
+    min=3,
+)
 HostOption = typer.Option(
     "127.0.0.1",
     "--host",
@@ -321,12 +330,13 @@ def example_data(
     ctx: typer.Context,
     workdir: Path = ExampleWorkdirOption,
     n_folders: int = ExampleNFoldersOption,
+    n_cols: int = ExampleNColsOption,
     verbose: int = VerboseOption,
     quiet: int = QuietOption,
 ) -> None:
     """Generate sample raw-data directories for exercising the trendify pipeline."""
     logger = _configure_logging(verbose, quiet)
-    make_example_data(workdir=workdir, n_folders=n_folders)
+    make_example_data(workdir=workdir, n_folders=n_folders, n_cols=n_cols)
     logger.info(f"Wrote {n_folders} sample data folders under {workdir / 'models'}")
 
 
@@ -372,7 +382,7 @@ def viewer(
     from trendify.viewer.app import create_app
 
     password = None  # not supported yet
-    if password:
+    if password:  # ty: ignore[redundant-condition]
         connection_info = "[yellow]Auth enabled. Use [u]any[/u] username and your provided password.[/yellow]\n\n"
     else:
         connection_info = ""
