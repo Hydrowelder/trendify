@@ -10,7 +10,6 @@ import logging
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from importlib.metadata import version
 from pathlib import Path
 from typing import Any, cast
 
@@ -18,6 +17,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from trendify.__about__ import __version__
 from trendify.store.record_store import RecordStore
 from trendify.viewer.hydration import HydrationRunner
 from trendify.viewer.routes import api, pages
@@ -31,13 +31,6 @@ logger = logging.getLogger(__name__)
 _VIEWER_DIR = Path(__file__).parent
 _TEMPLATES_DIR = _VIEWER_DIR / "templates"
 _STATIC_DIR = _TEMPLATES_DIR / "static"
-
-
-def _get_version() -> str:
-    try:
-        return version("trendify")
-    except Exception:
-        return "0.0.0"
 
 
 def create_app(db_path: Path) -> FastAPI:
@@ -87,7 +80,7 @@ def create_app(db_path: Path) -> FastAPI:
             app.state.store.close()
             app.state.hydration_runner.close()
 
-    app = FastAPI(title="trendify", version=_get_version(), lifespan=lifespan)
+    app = FastAPI(title="trendify", version=__version__, lifespan=lifespan)
     app.state.response_cache = {}
     app.state.db_path = db_path
     app.state.db_mtime = None
@@ -97,7 +90,7 @@ def create_app(db_path: Path) -> FastAPI:
     # so it isn't typed as the open `dict[str, Any]` it behaves as.
     env_globals = cast("dict[str, Any]", templates.env.globals)
     env_globals["current_year"] = datetime.datetime.now().year
-    env_globals["app_version"] = _get_version()
+    env_globals["app_version"] = __version__
     env_globals["db_path"] = str(db_path)
     app.state.templates = templates
 

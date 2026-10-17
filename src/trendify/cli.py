@@ -12,7 +12,6 @@ import importlib.util
 import logging
 import os
 import sys
-from importlib.metadata import version
 from pathlib import Path
 from types import ModuleType
 from typing import cast
@@ -23,6 +22,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
+from trendify.__about__ import __version__
 from trendify.base.record import RecordGenerator
 from trendify.color import Color
 from trendify.examples import make_example_data
@@ -34,7 +34,6 @@ __all__ = ["app"]
 
 logger = logging.getLogger(__name__)
 console = Console()
-VERSION = version("trendify")
 
 _LOGO_LINES = [
     "████████╗██████╗ ███████╗███╗   ██╗██████╗ ██╗███████╗██╗   ██╗",
@@ -66,7 +65,7 @@ def print_logo() -> None:
             Align.center(body),
             expand=False,
             border_style="indian_red1",
-            subtitle=f"[dim]v{VERSION}[/dim]",
+            subtitle=f"[dim]v{__version__}[/dim]",
         )
     )
 
@@ -82,7 +81,7 @@ app = typer.Typer(
 def version_callback(value: bool) -> None:
     if value:
         console.print(
-            f"[bold indian_red1]trendify[/bold indian_red1] [bold white]{VERSION}"
+            f"[bold indian_red1]trendify[/bold indian_red1] [bold white]{__version__}"
         )
         raise typer.Exit()
 
